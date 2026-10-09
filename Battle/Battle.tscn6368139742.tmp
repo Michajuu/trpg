@@ -1,0 +1,38 @@
+[gd_scene format=3 uid="uid://osxylfn8e8rs"]
+
+[ext_resource type="Script" uid="uid://cdtxqtnwwjqfa" path="res://Battle/battle.gd" id="1_dme4p"]
+[ext_resource type="Texture2D" uid="uid://026p6vv2gnnl" path="res://Battle/battle-area.png" id="1_ut43r"]
+[ext_resource type="JSON" path="res://Encounters/test_encounter.json" id="2_ut43r"]
+[ext_resource type="Texture2D" uid="uid://bxrtqxff646nt" path="res://Battle/Center finder.png" id="3_dme4p"]
+
+[node name="Battle" type="Control" unique_id=2123567974]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_dme4p")
+encounter_json = ExtResource("2_ut43r")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1865654389]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+metadata/_edit_lock_ = true
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1792118902]
+position = Vector2(320, 240)
+metadata/_edit_lock_ = true
+
+[node name="BattleArea" type="Sprite2D" parent="." unique_id=1055797617]
+position = Vector2(320, 284)
+texture = ExtResource("1_ut43r")
+
+[node name="CenterFinder" type="Sprite2D" parent="." unique_id=1048645113]
+position = Vector2(200, 220)
+texture = ExtResource("3_dme4p")

@@ -1,0 +1,14 @@
+{
+	"player_spawn": { "x": 1, "y": 2},
+	"enemies": [{"id": "Slime","x": 8, "y": 0}, {"id": "Slime","x": 8, "y": 4}],
+	"obstacles": [
+		{"id": "rock","x": 3, "y": 1},
+		{"id": "rock","x": 3, "y": 2},
+		{"id": "rock","x": 3, "y": 3},
+		
+		{"id": "rock","x": 5, "y": 0},
+		{"id": "rock","x": 5, "y": 1},
+		{"id": "rock","x": 5, "y": 3},
+		{"id": "rock","x": 5, "y": 4},
+	]
+}

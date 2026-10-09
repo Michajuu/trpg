@@ -1,0 +1,25 @@
+[gd_scene format=3 uid="uid://dmi7aprfeipx8"]
+
+[ext_resource type="Script" uid="uid://b04fpylkmlhwe" path="res://Battle/Entities/Enemies/Base/enemy.gd" id="2_l2pob"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jg2gb"]
+bg_color = Color(0, 0, 0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3bqpi"]
+bg_color = Color(1, 0.14117648, 0.1764706, 1)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_s1fef"]
+
+[node name="Enemy" type="Node2D" unique_id=889287356]
+script = ExtResource("2_l2pob")
+
+[node name="HealthBar" type="ProgressBar" parent="." unique_id=816827700]
+offset_left = -16.0
+offset_top = -5.0
+offset_right = 16.0
+theme_override_styles/background = SubResource("StyleBoxFlat_jg2gb")
+theme_override_styles/fill = SubResource("StyleBoxFlat_3bqpi")
+show_percentage = false
+
+[node name="Sprite" type="AnimatedSprite2D" parent="." unique_id=584000944]
+sprite_frames = SubResource("SpriteFrames_s1fef")

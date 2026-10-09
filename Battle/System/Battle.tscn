@@ -1,0 +1,48 @@
+[gd_scene format=3 uid="uid://osxylfn8e8rs"]
+
+[ext_resource type="Script" uid="uid://cdtxqtnwwjqfa" path="res://Battle/System/battle.gd" id="1_d7upo"]
+[ext_resource type="JSON" path="res://Encounters/test_encounter.json" id="2_jm2ld"]
+[ext_resource type="Texture2D" uid="uid://026p6vv2gnnl" path="res://Battle/System/battle-area.png" id="3_0l6bm"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_s1fef"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_khhxn"]
+bg_color = Color(1, 0.14117648, 0.1764706, 1)
+
+[node name="Battle" type="Control" unique_id=2123567974 node_paths=PackedStringArray("player_healtbar")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_d7upo")
+encounter_json = ExtResource("2_jm2ld")
+player_healtbar = NodePath("PlayerHealth")
+metadata/_edit_lock_ = true
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1792118902]
+position = Vector2(320, 240)
+metadata/_edit_lock_ = true
+
+[node name="BattleArea" type="Sprite2D" parent="." unique_id=1055797617]
+position = Vector2(320, 284)
+texture = ExtResource("3_0l6bm")
+metadata/_edit_lock_ = true
+
+[node name="PlayerHealth" type="ProgressBar" parent="." unique_id=65488900]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 28.0
+offset_top = -84.0
+offset_right = 198.0
+offset_bottom = -68.0
+grow_vertical = 0
+theme_override_styles/background = SubResource("StyleBoxFlat_s1fef")
+theme_override_styles/fill = SubResource("StyleBoxFlat_khhxn")
+value = 100.0
+show_percentage = false
+metadata/_edit_lock_ = true

@@ -1,0 +1,58 @@
+[gd_scene format=3 uid="uid://dvuc30mwht3lh"]
+
+[ext_resource type="PackedScene" uid="uid://dmi7aprfeipx8" path="res://Battle/Entities/Enemies/Base/Enemy.tscn" id="1_wjxvx"]
+[ext_resource type="Texture2D" uid="uid://caaxlxpcjupj3" path="res://Battle/Entities/Enemies/Slime/slime.png" id="1_xi6rn"]
+[ext_resource type="Script" uid="uid://dy5ah56jine1a" path="res://Battle/Entities/Enemies/Slime/slime.gd" id="3_1p5cq"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wjxvx"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wjxvx"]
+atlas = ExtResource("1_xi6rn")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1p5cq"]
+atlas = ExtResource("1_xi6rn")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_aodp2"]
+atlas = ExtResource("1_xi6rn")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_c45c3"]
+atlas = ExtResource("1_xi6rn")
+region = Rect2(96, 0, 32, 32)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_emi7v"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wjxvx")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1p5cq")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_aodp2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_c45c3")
+}],
+"loop": 1,
+"name": &"idle",
+"speed": 5.0
+}]
+
+[node name="Slime" unique_id=2104467743 node_paths=PackedStringArray("health_bar") instance=ExtResource("1_wjxvx")]
+script = ExtResource("3_1p5cq")
+health_bar = NodePath("HealthBar")
+max_hp = 30
+
+[node name="HealthBar" parent="." index="0" unique_id=816827700]
+z_index = 1
+theme_override_styles/background = SubResource("StyleBoxFlat_wjxvx")
+
+[node name="Sprite" parent="." index="1" unique_id=584000944]
+position = Vector2(0, 16)
+sprite_frames = SubResource("SpriteFrames_emi7v")
+animation = &"idle"
+flip_h = true

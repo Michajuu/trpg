@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://dvvwwpopyho51"]
+
+[ext_resource type="Texture2D" uid="uid://5g5mvu7k2lh7" path="res://Battle/Entities/Obstacles/rock/rock.png" id="1_l2yt3"]
+
+[node name="Rock" type="Sprite2D" unique_id=1958573356]
+texture = ExtResource("1_l2yt3")
+offset = Vector2(0, 23)
