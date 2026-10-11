@@ -2,7 +2,7 @@ class_name Enemy
 extends Unit
 
 
-@export var warning_tile : PackedScene = preload("res://Battle/System/warning_tile.tscn")
+@export var warning_tile : PackedScene = preload("res://Battle/System/Warning Tile/warning_tile.tscn")
 @export var health_bar: ProgressBar
 @onready var sprite : AnimatedSprite2D = $Sprite
 const WARNING_TILE_POSITION_ZERO = Vector2(200,220)

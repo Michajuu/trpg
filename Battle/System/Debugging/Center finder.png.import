@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bxrtqxff646nt"
-path="res://.godot/imported/Center finder.png-c02e299046c1e303266a45184560b30b.ctex"
+path="res://.godot/imported/Center finder.png-121e6623c3e210b5ac33434291136382.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Battle/System/Center finder.png"
-dest_files=["res://.godot/imported/Center finder.png-c02e299046c1e303266a45184560b30b.ctex"]
+source_file="res://Battle/System/Debugging/Center finder.png"
+dest_files=["res://.godot/imported/Center finder.png-121e6623c3e210b5ac33434291136382.ctex"]
 
 [params]
 

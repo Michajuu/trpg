@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://dkv4ibc00ncs2"]
 
-[ext_resource type="Texture2D" uid="uid://0fxvpym5q5lq" path="res://Battle/System/warning.png" id="1_mjhf8"]
+[ext_resource type="Texture2D" uid="uid://0fxvpym5q5lq" path="res://Battle/System/Warning Tile/warning.png" id="1_mjhf8"]
 
 [node name="Warning" type="Sprite2D" unique_id=2087142989]
 texture = ExtResource("1_mjhf8")
