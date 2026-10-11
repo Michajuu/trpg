@@ -11,7 +11,7 @@ var current_hp: int
 var destination : Vector2 = position
 var facing : facing_direction = facing_direction.RIGHT
 
-@onready var manager : Battle_Manager = get_parent()
+var manager : Battle_Manager
 
 signal _request_can_unit_move(from_position: Vector2i ,to_position: Vector2i, target_pos: Vector2,callback: Callable)
 signal _attack_tiles(tiles: Array[Vector2i], damage: int)

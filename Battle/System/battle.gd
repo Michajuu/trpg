@@ -41,6 +41,9 @@ func _ready() -> void:
 	# Connecting signals
 	player_instance._attack_tiles.connect(_on_attack_tiles)
 	player_instance.update_player_healthbar.connect(_on_update_player_healthbar)
+	# Setting refrence to parent
+	player_instance.manager = self
+	
 	player = player_instance
 	add_child(player_instance)
 	
@@ -61,6 +64,8 @@ func _ready() -> void:
 		enemy_instance._enemy_updated_position.connect(_on_enemy_update_position)
 		enemy_instance._attack_tiles.connect(_on_attack_tiles)
 		enemy_instance.enemy_died.connect(_on_enemy_death)
+		# Setting refrence to parent
+		enemy_instance.manager = self
 		
 		add_child(enemy_instance)
 	
