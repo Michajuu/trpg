@@ -128,6 +128,22 @@ func map_position_to_position(map_position: Vector2i) -> Vector2:
 	
 	return position
 
+func print_astar_grid(astar: AStarGrid2D, path: Array[Vector2i] = []) -> void:
+	var region := astar.region  
+	for y in range(region.position.y, region.end.y):
+		var row := ""
+		for x in range(region.position.x, region.end.x):
+			var cell := Vector2i(x, y)
+			if astar.is_point_solid(cell):
+				row += " ## "
+			elif cell in path:
+				row += " ** "
+			else:
+				row += "%4.1f" % astar.get_point_weight_scale(cell)
+			row += " "
+		print(row)
+	print("")   # blank line between prints
+
 func _print_grid() -> void:
 	for row in grid:
 		print(row)
