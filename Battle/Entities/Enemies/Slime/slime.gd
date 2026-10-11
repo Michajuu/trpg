@@ -19,12 +19,13 @@ func _decide_next_action(astar: AStarGrid2D, player_map_position: Vector2i) -> v
 		var path_right : Array[Vector2i] = _try_path_to(astar, Vector2i(min(player_map_position.x+1, 8), player_map_position.y))
 		var path_left : Array[Vector2i] = _try_path_to(astar, Vector2i(max(player_map_position.x-1, 0), player_map_position.y))
 		var chosen_path : Array[Vector2i] = path_right
-		if path_right.size() > path_left.size():
+		print(path_right.size(), path_left.size())
+		if path_right.size() > path_left.size() or path_right.size() == 0:
 			chosen_path = path_left
 		if chosen_path.size() <= 1:
 			chosen_path = _try_path_to(astar, player_map_position)
 		if not chosen_path.size() <= 1:
+			print(chosen_path)
 			_update_facing(chosen_path[1])
 			if manager._can_move(self, map_position, chosen_path[1]):
 				_commit_move(chosen_path)
-			

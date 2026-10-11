@@ -47,6 +47,9 @@ func _process(_delta: float) -> void:
 
 func _move(new_map_position : Vector2i, new_position : Vector2):
 	if manager._can_move(self, map_position, new_map_position):
+		manager.astar.set_point_weight_scale(map_position, 1.0)
+		manager.astar.set_point_weight_scale(new_map_position, 5.0)
+		manager.print_astar_grid(manager.astar)
 		map_position = new_map_position
 		destination = new_position
 	else:
