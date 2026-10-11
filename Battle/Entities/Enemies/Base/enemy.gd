@@ -54,6 +54,11 @@ func _update_facing(new_map_position: Vector2i):
 	if direction.x:
 		facing = facing_direction.LEFT if direction.x == -1 else facing_direction.RIGHT
 		sprite.flip_h = facing
+	else:
+		var player_map_position = manager.player.map_position
+		var direction_to_player = clamp(player_map_position.x - new_map_position.x,-1,1)
+		facing = facing_direction.LEFT if direction_to_player == -1 else facing_direction.RIGHT
+		sprite.flip_h = facing
 
 func _place_warning_tile(tiles: Array[Vector2i]) -> void:
 	for tile in tiles:
