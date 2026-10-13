@@ -4,6 +4,9 @@ extends Unit
 
 @export var warning_tile : PackedScene = preload("res://Battle/System/Warning Tile/warning_tile.tscn")
 @export var health_bar: ProgressBar
+@export var damage_number_scene : PackedScene = preload("res://Battle/System/Damage Number/damage_number.tscn")
+## Skąd (względem pozycji wroga) wylatuje liczba obrażeń.
+@export var damage_number_offset : Vector2 = Vector2(0, 8)
 @onready var sprite : AnimatedSprite2D = $Sprite
 const WARNING_TILE_POSITION_ZERO = Vector2(200,220)
 
@@ -31,9 +34,26 @@ func _take_damage(damage: int) -> void:
 	current_hp = max(current_hp - damage, 0)
 	if health_bar:
 		health_bar.value = current_hp
+	_spawn_damage_number(damage)
 	if !current_hp:
 		enemy_died.emit(self)
 		queue_free()
+
+# Liczba trafia do rodzica (Battle), żeby nie zniknęła razem z zabitym wrogiem.
+func _spawn_damage_number(damage: int) -> void:
+	if !damage_number_scene or !get_parent():
+		return
+	var number : DamageNumber = damage_number_scene.instantiate()
+	get_parent().add_child(number)
+	number.play(damage, _damage_number_direction(), global_position + damage_number_offset)
+
+# Liczba leci w stronę przeciwną do gracza, jak odrzut od ciosu.
+func _damage_number_direction() -> int:
+	if manager and manager.player:
+		var dx : int = map_position.x - manager.player.map_position.x
+		if dx != 0:
+			return signi(dx)
+	return 1 if randf() < 0.5 else -1
 
 func _decide_next_action(astar: AStarGrid2D, player_map_position : Vector2i) -> void:
 	print(self.name + ": I don't have an AI ;P")
