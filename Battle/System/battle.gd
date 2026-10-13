@@ -3,6 +3,7 @@ extends Control
 
 @export var encounter_json: JSON
 @export var player_healtbar: ProgressBar
+@export var tempo_bar: TempoBar
 
 var player : Player
 
@@ -41,6 +42,9 @@ func _ready() -> void:
 	# Connecting signals
 	player_instance._attack_tiles.connect(_on_attack_tiles)
 	player_instance.update_player_healthbar.connect(_on_update_player_healthbar)
+	if tempo_bar:
+		player_instance.tempo_changed.connect(tempo_bar.update_tempo)
+		tempo_bar.update_tempo(player_instance.tempo_percentage, player_instance.tempo)
 	# Setting refrence to parent
 	player_instance.manager = self
 	
@@ -115,6 +119,15 @@ func _is_player_there(tiles: Array[Vector2i]) -> bool:
 		if tile.x <= map_size.x:
 			if grid[tile.y][tile.x] is Player:
 				return true
+	return false
+
+func _is_in_bounds(tile: Vector2i) -> bool:
+	return tile.x >= 0 and tile.y >= 0 and tile.x <= map_size.x and tile.y <= map_size.y
+
+func _has_enemy_in(tiles: Array[Vector2i]) -> bool:
+	for tile in tiles:
+		if _is_in_bounds(tile) and grid[tile.y][tile.x] is Enemy:
+			return true
 	return false
 
 func _on_enemy_update_position(unit: Unit, from_map_position: Vector2i, to_map_position: Vector2i) -> void:

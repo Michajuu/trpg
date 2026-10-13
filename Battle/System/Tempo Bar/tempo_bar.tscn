@@ -3,6 +3,7 @@
 [ext_resource type="Texture2D" uid="uid://ce5vw21netaxc" path="res://Battle/System/Tempo Bar/tempo-bar.png" id="1_o28e4"]
 [ext_resource type="Script" uid="uid://dffksqr3x6g6a" path="res://Battle/System/Tempo Bar/tempo_bar.gd" id="2_hxo6q"]
 [ext_resource type="Texture2D" uid="uid://dhe8nsovjrkt1" path="res://Battle/System/Tempo Bar/tempo-bar-mask.png" id="2_w10ei"]
+[ext_resource type="FontFile" uid="uid://c00hsontvj8jx" path="res://Fonts/PressStart2P-Regular.ttf" id="4_j5r2x"]
 
 [sub_resource type="Gradient" id="Gradient_0l6bm"]
 colors = PackedColorArray(0.88549376, 0.1892848, 0, 1, 0.93256205, 0.6085195, 0, 1)
@@ -13,9 +14,11 @@ width = 24
 height = 100
 fill_to = Vector2(0, 1)
 
-[node name="TempoBar" type="Sprite2D" unique_id=2002083312]
+[node name="TempoBar" type="Sprite2D" unique_id=2002083312 node_paths=PackedStringArray("tempo_counter")]
 texture = ExtResource("1_o28e4")
 script = ExtResource("2_hxo6q")
+tempo_counter = NodePath("TempoCounter")
+metadata/_edit_vertical_guides_ = [16.0]
 
 [node name="TempoBarMask" type="Sprite2D" parent="." unique_id=1301507849]
 clip_children = 1
@@ -32,6 +35,16 @@ texture = SubResource("GradientTexture2D_bowr3")
 [node name="TempoBarCover" type="ColorRect" parent="TempoBarMask" unique_id=1685995]
 modulate = Color(0.2592937, 0.2592937, 0.25929365, 1)
 offset_left = -12.0
-offset_top = -298.0
+offset_top = -100.0
 offset_right = 12.0
-offset_bottom = -98.0
+offset_bottom = 100.0
+
+[node name="TempoCounter" type="RichTextLabel" parent="." unique_id=1623869232]
+offset_left = -34.0
+offset_top = 109.0
+offset_right = 38.0
+offset_bottom = 149.0
+theme_override_fonts/normal_font = ExtResource("4_j5r2x")
+theme_override_font_sizes/normal_font_size = 32
+text = "0"
+horizontal_alignment = 1
