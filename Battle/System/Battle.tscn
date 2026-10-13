@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://osxylfn8e8rs"]
 
 [ext_resource type="Script" uid="uid://cdtxqtnwwjqfa" path="res://Battle/System/battle.gd" id="1_d7upo"]
-[ext_resource type="JSON" path="res://Encounters/test_encounter.json" id="2_jm2ld"]
+[ext_resource type="JSON" path="res://Encounters/dummy_encounter.json" id="2_jm2ld"]
 [ext_resource type="Texture2D" uid="uid://026p6vv2gnnl" path="res://Battle/System/battle-area.png" id="3_0l6bm"]
 [ext_resource type="PackedScene" uid="uid://bav60v4j7opky" path="res://Battle/System/Tempo Bar/tempo_bar.tscn" id="4_jm2ld"]
 
@@ -51,4 +51,3 @@ metadata/_edit_lock_ = true
 
 [node name="TempoBar" parent="." unique_id=2002083312 instance=ExtResource("4_jm2ld")]
 position = Vector2(48, 127)
-percentage = 0.0

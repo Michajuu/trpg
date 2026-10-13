@@ -1,0 +1,5 @@
+{
+	"player_spawn": { "x": 1, "y": 2},
+	"enemies": [{"id": "Dummy","x": 4, "y": 2}],
+	"obstacles": []
+}
