@@ -56,4 +56,3 @@ modulate = Color(0, 0, 0, 1)
 position = Vector2(0, 16)
 sprite_frames = SubResource("SpriteFrames_emi7v")
 animation = &"idle"
-flip_h = true

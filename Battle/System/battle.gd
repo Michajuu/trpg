@@ -99,12 +99,12 @@ func _can_move(unit: Unit ,from_map_position: Vector2i,to_map_position: Vector2i
 			return true
 	return false
 
-func _on_attack_tiles(tiles: Array[Vector2i], damage: int) -> void:
-	for tile in tiles:
-		if tile.x <= map_size.x and tile.y <= map_size.y and tile.x != -1 and tile.y != -1:
+func _on_attack_tiles(attack: Attack) -> void:
+	for tile in attack.tiles:
+		if _is_in_bounds(tile):
 			var unit = grid[tile.y][tile.x]
 			if unit is Unit:
-				unit._take_damage(damage)
+				unit._take_damage(attack.resolve_against(unit))
 
 func _on_enemy_death(enemy: Enemy):
 	grid[enemy.map_position.y][enemy.map_position.x] = null

@@ -9,7 +9,7 @@ func _decide_next_action(astar: AStarGrid2D, player_map_position: Vector2i) -> v
 		if !turnsUntilAttack:
 			_place_warning_tile(tiles_to_check)
 	elif about_to_attack:
-		_attack_tiles.emit(tiles_to_check, dmg)
+		_attack_tiles.emit(Attack.new(self, tiles_to_check, dmg))
 		about_to_attack = false
 		_remove_warning_tiles()
 	elif manager._is_player_there(tiles_to_check):

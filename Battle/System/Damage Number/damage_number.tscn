@@ -6,6 +6,7 @@
 [node name="DamageNumber" type="Node2D" unique_id=656954573]
 z_index = 10
 script = ExtResource("1_dmgnum")
+critical_color = Color(0.9793479, 0.79813534, 8.856058e-06, 1)
 
 [node name="Label" type="Label" parent="." unique_id=1769263061]
 offset_left = -24.0

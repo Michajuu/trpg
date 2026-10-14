@@ -99,7 +99,7 @@ func _process(delta: float) -> void:
 		# Tempo is granted only for hitting an enemy (not empty air or an obstacle).
 		# Checked before emit, because the enemy may die from this hit.
 		var hit_enemy: bool = manager._has_enemy_in(tile)
-		_attack_tiles.emit(tile, get_basic_attack_damage())
+		_attack_tiles.emit(Attack.new(self, tile, get_basic_attack_damage()))
 		if hit_enemy:
 			add_tempo_percentage(tempo_per_attack)
 		manager._move_enemies()
@@ -152,6 +152,6 @@ func spend_tempo(amount: int) -> bool:
 	tempo_percentage = 0 if new_level <= 0 else tempo_thresholds[new_level - 1]
 	return true
 
-func _take_damage(damage: int) -> void:
-	current_hp = max(current_hp - damage, 0)
+func _take_damage(hit: Hit) -> void:
+	current_hp = max(current_hp - hit.damage, 0)
 	update_player_healthbar.emit(current_hp)

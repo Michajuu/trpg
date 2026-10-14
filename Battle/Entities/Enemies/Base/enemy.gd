@@ -29,22 +29,22 @@ func _process(delta: float) -> void:
 	if position != destination:
 		_move_toward_destination(delta)
 
-func _take_damage(damage: int) -> void:
-	current_hp = max(current_hp - damage, 0)
+func _take_damage(hit: Hit) -> void:
+	current_hp = max(current_hp - hit.damage, 0)
 	if health_bar:
 		health_bar.value = current_hp
-	_spawn_damage_number(damage)
+	_spawn_damage_number(hit)
 	if !current_hp:
 		enemy_died.emit(self)
 		queue_free()
 
 # The number is added to the parent (Battle) so it doesn't disappear along with a killed enemy.
-func _spawn_damage_number(damage: int) -> void:
+func _spawn_damage_number(hit: Hit) -> void:
 	if !damage_number_scene or !get_parent():
 		return
 	var number : DamageNumber = damage_number_scene.instantiate()
 	get_parent().add_child(number)
-	number.play(damage, _damage_number_direction(), global_position + damage_number_offset)
+	number.play(hit.damage, _damage_number_direction(), global_position + damage_number_offset, hit.is_critical)
 
 # The number flies away from the player, like knockback from the hit.
 func _damage_number_direction() -> int:

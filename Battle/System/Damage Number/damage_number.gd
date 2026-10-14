@@ -12,6 +12,10 @@ extends Node2D
 @export var fall_distance: float = 6.0
 ## Duration of the whole animation in seconds.
 @export var duration: float = 0.6
+## Text color of a critical hit's number.
+@export var critical_color: Color = Color(1.0, 0.2, 0.2)
+## Appended to a critical hit's number.
+@export var critical_suffix: String = "!"
 
 @onready var label: Label = $Label
 
@@ -26,8 +30,11 @@ var _offset_y: float = 0.0:
 		_apply_offset()
 
 ## Call after add_child. direction: -1 = left, 1 = right.
-func play(amount: int, direction: int, at_global_position: Vector2) -> void:
+func play(amount: int, direction: int, at_global_position: Vector2, is_critical: bool = false) -> void:
 	label.text = str(amount)
+	if is_critical:
+		label.text += critical_suffix
+		label.add_theme_color_override("font_color", critical_color)
 	global_position = at_global_position.round()
 	_start = position
 
