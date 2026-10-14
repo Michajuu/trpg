@@ -44,7 +44,7 @@ func _ready() -> void:
 	player_instance.update_player_healthbar.connect(_on_update_player_healthbar)
 	if tempo_bar:
 		player_instance.tempo_changed.connect(tempo_bar.update_tempo)
-		tempo_bar.update_tempo(player_instance.tempo_percentage, player_instance.tempo)
+		tempo_bar.update_tempo(player_instance.tempo, player_instance.tempo_level_progress)
 	# Setting refrence to parent
 	player_instance.manager = self
 	

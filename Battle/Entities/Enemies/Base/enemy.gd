@@ -5,7 +5,7 @@ extends Unit
 @export var warning_tile : PackedScene = preload("res://Battle/System/Warning Tile/warning_tile.tscn")
 @export var health_bar: ProgressBar
 @export var damage_number_scene : PackedScene = preload("res://Battle/System/Damage Number/damage_number.tscn")
-## Skąd (względem pozycji wroga) wylatuje liczba obrażeń.
+## Where the damage number spawns, relative to the enemy's position.
 @export var damage_number_offset : Vector2 = Vector2(0, 8)
 @onready var sprite : AnimatedSprite2D = $Sprite
 const WARNING_TILE_POSITION_ZERO = Vector2(200,220)
@@ -38,7 +38,7 @@ func _take_damage(damage: int) -> void:
 		enemy_died.emit(self)
 		queue_free()
 
-# Liczba trafia do rodzica (Battle), żeby nie zniknęła razem z zabitym wrogiem.
+# The number is added to the parent (Battle) so it doesn't disappear along with a killed enemy.
 func _spawn_damage_number(damage: int) -> void:
 	if !damage_number_scene or !get_parent():
 		return
@@ -46,7 +46,7 @@ func _spawn_damage_number(damage: int) -> void:
 	get_parent().add_child(number)
 	number.play(damage, _damage_number_direction(), global_position + damage_number_offset)
 
-# Liczba leci w stronę przeciwną do gracza, jak odrzut od ciosu.
+# The number flies away from the player, like knockback from the hit.
 func _damage_number_direction() -> int:
 	if manager and manager.player:
 		var dx : int = map_position.x - manager.player.map_position.x

@@ -2,31 +2,59 @@ class_name Player
 extends Unit
 
 signal update_player_healthbar(new_hp: int)
-signal tempo_changed(percentage: int, tempo: int)
+signal tempo_changed(tempo: int, level_progress: float)
 
-const PERCENT_PER_TEMPO := 10
-const MAX_TEMPO_PERCENTAGE := 100
+const MAX_TEMPO_PERCENTAGE := 200
 
-## Ile procent Tempa daje jeden podstawowy atak.
+## How many Tempo percent a single basic attack grants.
 @export var tempo_per_attack: int = 5
-## Co ile sekund bezczynności Tempo spada.
+## Cumulative Tempo % required to reach each successive level (ascending).
+## Equal spacing = every level fills up equally fast.
+## Number of elements = maximum Tempo level.
+## Between the last threshold and MAX_TEMPO_PERCENTAGE there is a buffer: the bar keeps filling,
+## the level no longer increases, and Tempo decay eats into the buffer first.
+@export var tempo_thresholds: Array[int] = [20, 40, 60, 80, 100, 120, 140, 160, 180]
+## How many seconds of inactivity between Tempo decay ticks.
 @export var tempo_decay_interval: float = 0.5
-## Ile procent Tempa traci się co tempo_decay_interval.
+## How many Tempo percent are lost every tempo_decay_interval.
 @export var tempo_decay_amount: int = 1
+## How much faster Tempo decays per level (0.25 = +25% faster per level).
+## 0 = decay is always the same speed.
+@export var tempo_decay_speedup_per_level: float = 0.25
+## How many seconds after each action (move/attack) Tempo doesn't decay at all.
+## Should be longer than the move animation so continuous walking doesn't lose Tempo.
+@export var tempo_decay_grace_time: float = 0.4
+## How much basic attack damage grows per Tempo level (0.1 = +10% dmg per level).
+@export var tempo_damage_bonus_per_level: float = 0.1
 
-# Czas od ostatniej akcji (ruch/atak) albo od ostatniego spadku.
+# Time since the last action (move/attack) or the last decay tick.
 var _tempo_decay_time: float = 0.0
 
 var tempo_percentage: int = 0:
 	set(value):
 		tempo_percentage = clampi(value, 0, MAX_TEMPO_PERCENTAGE)
-		tempo_changed.emit(tempo_percentage, tempo)
+		tempo_changed.emit(tempo, tempo_level_progress)
 
-## Pełne punkty Tempa: każde 10% = 1 Tempo.
+## Full Tempo points: the number of tempo_thresholds the player has reached.
 var tempo: int:
 	get:
-		@warning_ignore("integer_division")
-		return tempo_percentage / PERCENT_PER_TEMPO
+		var level := 0
+		for threshold in tempo_thresholds:
+			if tempo_percentage < threshold:
+				break
+			level += 1
+		return level
+
+## Progress (0.0–1.0) within the current Tempo level: from the current level's threshold to the next one.
+## At max level it shows the buffer: from the last threshold to MAX_TEMPO_PERCENTAGE.
+var tempo_level_progress: float:
+	get:
+		var level := tempo
+		var start := 0 if level == 0 else tempo_thresholds[level - 1]
+		var end := MAX_TEMPO_PERCENTAGE if level >= tempo_thresholds.size() else tempo_thresholds[level]
+		if end <= start:
+			return 1.0
+		return float(tempo_percentage - start) / float(end - start)
 
 @onready var sprite : AnimatedSprite2D = $Sprite
 @onready var AttackCooldownTimer : Timer = $AttackCooldown
@@ -43,8 +71,7 @@ func _process(delta: float) -> void:
 	if !sprite.is_playing():
 		sprite.play("idle")
 	elif position != destination:
-		position.x = move_toward(position.x,destination.x,3)
-		position.y = move_toward(position.y,destination.y,3)
+		_move_toward_destination(delta)
 	elif Input.is_action_just_pressed("ui_right"):
 		var new_map_position = Vector2i(map_position.x + 1, map_position.y)
 		var new_position = Vector2(position.x+46, position.y)
@@ -69,10 +96,10 @@ func _process(delta: float) -> void:
 		AttackCooldownTimer.start()
 		_reset_tempo_decay()
 		sprite.play("attack")
-		# Tempo tylko za trafienie we wroga (nie w powietrze ani w przeszkodę).
-		# Sprawdzamy przed emit, bo wróg może zginąć od tego ciosu.
+		# Tempo is granted only for hitting an enemy (not empty air or an obstacle).
+		# Checked before emit, because the enemy may die from this hit.
 		var hit_enemy: bool = manager._has_enemy_in(tile)
-		_attack_tiles.emit(tile,10)
+		_attack_tiles.emit(tile, get_basic_attack_damage())
 		if hit_enemy:
 			add_tempo_percentage(tempo_per_attack)
 		manager._move_enemies()
@@ -87,28 +114,42 @@ func _move(new_map_position : Vector2i, new_position : Vector2):
 	else:
 		facing = facing_direction.RIGHT if facing == facing_direction.LEFT else facing_direction.LEFT
 
+## Basic attack damage: dmg scaled by the current Tempo level.
+func get_basic_attack_damage() -> int:
+	return roundi(dmg * (1.0 + tempo * tempo_damage_bonus_per_level))
+
 func add_tempo_percentage(amount: int) -> void:
 	tempo_percentage += amount
 
-## Gdy gracz nic nie robi, co tempo_decay_interval traci tempo_decay_amount %.
+## While the player is idle, loses tempo_decay_amount % every _current_decay_interval().
 func _update_tempo_decay(delta: float) -> void:
 	if tempo_percentage <= 0 or tempo_decay_interval <= 0.0:
 		_tempo_decay_time = 0.0
 		return
 	_tempo_decay_time += delta
-	while _tempo_decay_time >= tempo_decay_interval:
-		_tempo_decay_time -= tempo_decay_interval
+	# Interval is recalculated every tick, because dropping a level slows further decay.
+	var interval := _current_decay_interval()
+	while tempo_percentage > 0 and _tempo_decay_time >= interval:
+		_tempo_decay_time -= interval
 		add_tempo_percentage(-tempo_decay_amount)
+		interval = _current_decay_interval()
 
-## Każda akcja gracza zaczyna odliczanie od nowa.
+## The higher the Tempo level, the shorter the interval between decay ticks.
+func _current_decay_interval() -> float:
+	return tempo_decay_interval / (1.0 + tempo * maxf(tempo_decay_speedup_per_level, 0.0))
+
+## Every player action restarts the countdown.
+## Starting from a negative value = grace time before the first decay tick happens.
 func _reset_tempo_decay() -> void:
-	_tempo_decay_time = 0.0
+	_tempo_decay_time = -maxf(tempo_decay_grace_time, 0.0)
 
-## Wydaje pełne punkty Tempa (np. na umiejętność). Zwraca false, jeśli za mało.
+## Spends full Tempo points (e.g. on a skill). Returns false if there aren't enough.
+## The percentage drops to the new level's threshold; progress above it is lost.
 func spend_tempo(amount: int) -> bool:
 	if tempo < amount:
 		return false
-	tempo_percentage -= amount * PERCENT_PER_TEMPO
+	var new_level := tempo - amount
+	tempo_percentage = 0 if new_level <= 0 else tempo_thresholds[new_level - 1]
 	return true
 
 func _take_damage(damage: int) -> void:

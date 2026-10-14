@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dhe8nsovjrkt1"
-path="res://.godot/imported/tempo-bar-mask.png-bac8afac7e92350cfd4b637a87102b6f.ctex"
+uid="uid://r8kpeuwpfwya"
+path="res://.godot/imported/tempometer-mask.png-83cf4024ad701c479caf7bd04763fa1c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Battle/System/Tempo Bar/tempo-bar-mask.png"
-dest_files=["res://.godot/imported/tempo-bar-mask.png-bac8afac7e92350cfd4b637a87102b6f.ctex"]
+source_file="res://Battle/System/Tempometer/tempometer-mask.png"
+dest_files=["res://.godot/imported/tempometer-mask.png-83cf4024ad701c479caf7bd04763fa1c.ctex"]
 
 [params]
 

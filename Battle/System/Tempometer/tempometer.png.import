@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ce5vw21netaxc"
-path="res://.godot/imported/tempo-bar.png-62ba0bb303118cc341cf79df1c5f8388.ctex"
+uid="uid://ssxrm7g7fd5o"
+path="res://.godot/imported/tempometer.png-c344fc9d84c2fd36899eff609919cf61.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Battle/System/Tempo Bar/tempo-bar.png"
-dest_files=["res://.godot/imported/tempo-bar.png-62ba0bb303118cc341cf79df1c5f8388.ctex"]
+source_file="res://Battle/System/Tempometer/tempometer.png"
+dest_files=["res://.godot/imported/tempometer.png-c344fc9d84c2fd36899eff609919cf61.ctex"]
 
 [params]
 

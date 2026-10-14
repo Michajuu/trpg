@@ -7,7 +7,7 @@ enum facing_direction {RIGHT, LEFT}
 @export var max_hp: int = 100
 @export var dmg: int = 10
 @export var map_position = Vector2i(0,0)
-## Prędkość animacji przejścia między polami, w pikselach na sekundę (niezależna od FPS).
+## Speed of the tile-to-tile movement animation, in pixels per second (FPS-independent).
 @export var move_speed: float = 300
 var current_hp: int
 var destination : Vector2 = position
@@ -24,7 +24,7 @@ func _ready() -> void:
 func _take_damage(damage: int) -> void:
 	current_hp = max(current_hp - damage, 0)
 
-## Przesuwa jednostkę w stronę destination. Wywołuj co klatkę z delta.
+## Moves the unit toward destination. Call every frame with delta.
 func _move_toward_destination(delta: float) -> void:
 	var step := move_speed * delta
 	position.x = move_toward(position.x, destination.x, step)
