@@ -27,8 +27,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if position != destination:
-		position.x = move_toward(position.x,destination.x,3)
-		position.y = move_toward(position.y,destination.y,3)
+		_move_toward_destination(delta)
 
 func _take_damage(damage: int) -> void:
 	current_hp = max(current_hp - damage, 0)

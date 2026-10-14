@@ -7,6 +7,8 @@ enum facing_direction {RIGHT, LEFT}
 @export var max_hp: int = 100
 @export var dmg: int = 10
 @export var map_position = Vector2i(0,0)
+## Prędkość animacji przejścia między polami, w pikselach na sekundę (niezależna od FPS).
+@export var move_speed: float = 300
 var current_hp: int
 var destination : Vector2 = position
 var facing : facing_direction = facing_direction.RIGHT
@@ -21,6 +23,12 @@ func _ready() -> void:
 
 func _take_damage(damage: int) -> void:
 	current_hp = max(current_hp - damage, 0)
+
+## Przesuwa jednostkę w stronę destination. Wywołuj co klatkę z delta.
+func _move_toward_destination(delta: float) -> void:
+	var step := move_speed * delta
+	position.x = move_toward(position.x, destination.x, step)
+	position.y = move_toward(position.y, destination.y, step)
 
 func _on_can_unit_move_response(can_move: bool, target_map_pos: Vector2i, target_pos: Vector2) -> void:
 	if can_move:
