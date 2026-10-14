@@ -1,0 +1,6 @@
+{
+	"id": "Bash",
+	"name": "Bash",
+	"tempo_cost": 2,
+	"description": "Test skill. Only logs its use."
+}

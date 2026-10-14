@@ -5,6 +5,11 @@ signal update_player_healthbar(new_hp: int)
 signal tempo_changed(tempo: int, level_progress: float)
 
 const MAX_TEMPO_PERCENTAGE := 200
+## Input actions that trigger skills, in loadout order (skills[0] -> first action, ...).
+const SKILL_ACTIONS: Array[String] = ["first_skill", "secound_skill", "thrid_skill"]
+
+## Skills the player brought into this battle; set by Battle via set_skills.
+var skills: Array[Skill] = []
 
 ## How many Tempo percent a single basic attack grants.
 @export var tempo_per_attack: int = 5
@@ -103,6 +108,22 @@ func _process(delta: float) -> void:
 		if hit_enemy:
 			add_tempo_percentage(tempo_per_attack)
 		manager._move_enemies()
+	#Skills
+	for i in mini(skills.size(), SKILL_ACTIONS.size()):
+		if Input.is_action_just_pressed(SKILL_ACTIONS[i]):
+			_use_skill(skills[i])
+
+func set_skills(new_skills: Array[Skill]) -> void:
+	skills = new_skills
+	for skill in skills:
+		skill.user = self
+
+## Using a skill counts as an action: resets Tempo decay and gives enemies their turn.
+func _use_skill(skill: Skill) -> void:
+	if not skill.use():
+		return
+	_reset_tempo_decay()
+	manager._move_enemies()
 
 func _move(new_map_position : Vector2i, new_position : Vector2):
 	if manager._can_move(self, map_position, new_map_position):

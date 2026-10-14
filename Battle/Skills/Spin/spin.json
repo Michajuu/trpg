@@ -1,0 +1,6 @@
+{
+	"id": "Spin",
+	"name": "Spin",
+	"tempo_cost": 3,
+	"description": "Test skill. Only logs its use. Has its own script as an example of custom behaviour."
+}

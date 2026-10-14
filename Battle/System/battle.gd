@@ -4,10 +4,16 @@ extends Control
 @export var encounter_json: JSON
 @export var player_healtbar: ProgressBar
 @export var tempo_bar: TempoBar
+## Container that gets one skill slot per skill in skill_loadout.
+@export var skill_bar: Container
+## Ids of the skills the player brings into this battle (folder names in Battle/Skills).
+## Set it before adding Battle to the tree, e.g. from the pre-battle skill selection.
+@export var skill_loadout: Array[String] = ["Dash", "Bash", "Spin"]
 
 var player : Player
 
 var player_scene = preload("res://Battle/Entities/Player/player.tscn")
+var skill_slot_scene = preload("res://Battle/System/Skills/skill.tscn")
 
 const POSITION_ZERO = Vector2(200,190)
 
@@ -45,6 +51,7 @@ func _ready() -> void:
 	if tempo_bar:
 		player_instance.tempo_changed.connect(tempo_bar.update_tempo)
 		tempo_bar.update_tempo(player_instance.tempo, player_instance.tempo_level_progress)
+	_setup_skills(player_instance)
 	# Setting refrence to parent
 	player_instance.manager = self
 	
@@ -80,6 +87,25 @@ func _ready() -> void:
 		grid[obstacle.position.y][obstacle.position.x] = obstacle_instance
 		astar.set_point_solid(obstacle.position, true)
 		add_child(obstacle_instance)
+
+## Loads the skills from skill_loadout, gives them to the player and builds their slots.
+func _setup_skills(player_instance: Player) -> void:
+	var skills: Array[Skill] = []
+	for id in skill_loadout:
+		var skill := Skill.load_skill(id)
+		if skill:
+			skills.append(skill)
+	if skills.size() > Player.SKILL_ACTIONS.size():
+		push_warning("Loadout has %d skills, but only %d skill keys exist" % [skills.size(), Player.SKILL_ACTIONS.size()])
+	player_instance.set_skills(skills)
+	if not skill_bar:
+		return
+	for skill in skills:
+		var slot : SkillSlot = skill_slot_scene.instantiate()
+		skill_bar.add_child(slot)
+		slot.skill = skill
+		player_instance.tempo_changed.connect(slot.update_tempo)
+		slot.update_tempo(player_instance.tempo, player_instance.tempo_level_progress)
 
 func _process(_delta: float) -> void:
 	if Input.is_action_just_pressed("ui_cancel"):

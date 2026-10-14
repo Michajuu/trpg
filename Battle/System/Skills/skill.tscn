@@ -1,0 +1,46 @@
+[gd_scene format=3 uid="uid://d2dsgplqyvdhw"]
+
+[ext_resource type="Texture2D" uid="uid://6f8b8xpuy756" path="res://Battle/System/Skills/skill-slot.png" id="1_hjs8a"]
+[ext_resource type="Texture2D" uid="uid://cgp6dkoiq31gb" path="res://Battle/System/Skills/skill-slot-mask.png" id="2_irs4i"]
+[ext_resource type="FontFile" uid="uid://c00hsontvj8jx" path="res://Fonts/PressStart2P-Regular.ttf" id="3_p4kip"]
+[ext_resource type="Script" uid="uid://dxpav0tilq2am" path="res://Battle/System/Skills/skill_slot.gd" id="4_slot"]
+
+[node name="Skill 1" type="TextureRect" unique_id=1041929816]
+texture = ExtResource("1_hjs8a")
+script = ExtResource("4_slot")
+
+[node name="Skill Mask" type="TextureRect" parent="." unique_id=1763322635]
+clip_children = 1
+layout_mode = 0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 60.0
+offset_bottom = 52.0
+texture = ExtResource("2_irs4i")
+
+[node name="Placeholder" type="Label" parent="Skill Mask" unique_id=1679839305]
+layout_mode = 0
+offset_top = 13.0
+offset_right = 56.0
+offset_bottom = 36.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "skill"
+horizontal_alignment = 1
+
+[node name="ColorRect" type="ColorRect" parent="Skill Mask" unique_id=2033663239]
+layout_mode = 0
+offset_left = -4.0
+offset_right = 60.0
+offset_bottom = 48.0
+color = Color(0.1254902, 0.1254902, 0.1254902, 0.7411765)
+
+[node name="TempoCost" type="Label" parent="." unique_id=958787654]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 46.0
+offset_right = 40.0
+offset_bottom = 62.0
+theme_override_colors/font_color = Color(0.16862746, 0.16862746, 0.16862746, 1)
+theme_override_fonts/font = ExtResource("3_p4kip")
+theme_override_font_sizes/font_size = 16
+text = "1"

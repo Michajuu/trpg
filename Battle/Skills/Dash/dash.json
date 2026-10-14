@@ -1,0 +1,6 @@
+{
+	"id": "Dash",
+	"name": "Dash",
+	"tempo_cost": 1,
+	"description": "Test skill. Only logs its use."
+}

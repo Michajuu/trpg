@@ -10,7 +10,7 @@
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_khhxn"]
 bg_color = Color(1, 0.14117648, 0.1764706, 1)
 
-[node name="Battle" type="Control" unique_id=2123567974 node_paths=PackedStringArray("player_healtbar", "tempo_bar")]
+[node name="Battle" type="Control" unique_id=2123567974 node_paths=PackedStringArray("player_healtbar", "tempo_bar", "skill_bar")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -21,8 +21,10 @@ grow_vertical = 2
 script = ExtResource("1_d7upo")
 encounter_json = ExtResource("2_jm2ld")
 player_healtbar = NodePath("PlayerHealth")
-tempo_bar = NodePath("TempoBar")
+tempo_bar = NodePath("Tempometer")
+skill_bar = NodePath("Abilities")
 metadata/_edit_lock_ = true
+metadata/_edit_vertical_guides_ = [28.0]
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1792118902]
 position = Vector2(320, 240)
@@ -49,5 +51,12 @@ value = 100.0
 show_percentage = false
 metadata/_edit_lock_ = true
 
-[node name="TempoBar" parent="." unique_id=2002083312 instance=ExtResource("4_jm2ld")]
-position = Vector2(60, 227)
+[node name="Tempometer" parent="." unique_id=2002083312 instance=ExtResource("4_jm2ld")]
+position = Vector2(60, 438)
+
+[node name="Abilities" type="HBoxContainer" parent="." unique_id=491426335]
+layout_mode = 0
+offset_left = 102.0
+offset_top = 404.0
+offset_right = 472.0
+offset_bottom = 468.0
