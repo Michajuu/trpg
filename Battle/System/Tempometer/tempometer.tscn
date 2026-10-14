@@ -23,26 +23,26 @@ gradient = SubResource("Gradient_4twtt")
 width = 62
 height = 60
 
-[node name="TempoBar" type="Sprite2D" unique_id=2002083312 node_paths=PackedStringArray("tempo_counter")]
+[node name="Tempometer" type="Sprite2D" unique_id=2002083312 node_paths=PackedStringArray("tempo_counter")]
 texture = ExtResource("1_j5r2x")
 script = ExtResource("2_hxo6q")
 tempo_counter = NodePath("TempoCounter")
 metadata/_edit_vertical_guides_ = [16.0]
 
-[node name="TempoBarMask" type="Sprite2D" parent="." unique_id=1301507849]
+[node name="TempometerMask" type="Sprite2D" parent="." unique_id=1301507849]
 clip_children = 1
 z_index = -1
 position = Vector2(0, -16)
 texture = ExtResource("3_garpq")
 
-[node name="Inside" type="TextureRect" parent="TempoBarMask" unique_id=1399428268]
+[node name="Inside" type="TextureRect" parent="TempometerMask" unique_id=1399428268]
 offset_left = -31.0
 offset_top = -15.0
 offset_right = 32.0
 offset_bottom = 16.0
 texture = SubResource("GradientTexture2D_bowr3")
 
-[node name="TempoBarCover" type="TextureProgressBar" parent="TempoBarMask" unique_id=1099925292]
+[node name="TempometerCover" type="TextureProgressBar" parent="TempometerMask" unique_id=1099925292]
 modulate = Color(0.2592937, 0.2592937, 0.25929365, 1)
 offset_left = 31.0
 offset_top = 45.0

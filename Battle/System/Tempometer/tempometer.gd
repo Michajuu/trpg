@@ -20,7 +20,7 @@ extends Sprite2D
 
 var tempo: int = 0
 
-@onready var TempoBarCover: TextureProgressBar = $TempoBarMask/TempoBarCover
+@onready var TempoBarCover: TextureProgressBar = $TempometerMask/TempometerCover
 
 func _ready() -> void:
 	_update_visuals()
