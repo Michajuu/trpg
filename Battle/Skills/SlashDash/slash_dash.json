@@ -1,0 +1,10 @@
+{
+	"id": "SlashDash",
+	"name": "SlashDash",
+	"tempo_cost": 1,
+	"description": "Dashes in the facing location and stops at a unit or obstacle and attacks. Range of 3 movement tiles",
+	"damage_multiplier": 1,
+	"tiles": [
+		[1, 0]
+	]
+}

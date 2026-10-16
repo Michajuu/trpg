@@ -2,5 +2,7 @@
 	"id": "Spin",
 	"name": "Spin",
 	"tempo_cost": 3,
-	"description": "Test skill. Only logs its use. Has its own script as an example of custom behaviour."
+	"description": "Test skill. Hits every tile around the user. Has its own script as an example of custom behaviour.",
+	"damage_multiplier": 1.0,
+	"tiles": "full_circle"
 }

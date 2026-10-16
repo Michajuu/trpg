@@ -1,0 +1,8 @@
+{
+	"id": "Punch",
+	"name": "Punch",
+	"tempo_cost": 1,
+	"description": "Stun for 1 turns",
+	"damage_multiplier": 0,
+	"tiles": "in_front"
+}

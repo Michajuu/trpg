@@ -3,9 +3,9 @@ extends RefCounted
 
 ## Base for every skill.
 ## A skill lives in its own folder: Battle/Skills/<Id>/
-##   <id>.json - data (name, tempo_cost, description), required
+##   <id>.json - data (name, tempo_cost, description, damage_multiplier, tiles), required
 ##   <id>.gd   - behaviour, optional; must extend Skill and override _activate()
-## A skill without a script just logs its use.
+## A skill without a script hits its "tiles" for user's dmg * damage_multiplier.
 
 const SKILLS_PATH := "res://Battle/Skills/%s/%s"
 
@@ -44,6 +44,19 @@ func use() -> bool:
 	_activate()
 	return true
 
-## The skill's effect. Override in the skill's own script; base behaviour only logs the use.
+## The skill's effect. Default: hits the "tiles" pattern; a skill with no tiles deals no damage.
+## Override in the skill's own script for custom behaviour (call super() to keep the hit).
 func _activate() -> void:
-	print("[Skill] %s used (cost %d Tempo)" % [data.display_name, data.tempo_cost])
+	print("[Skill] %s used (cost %d Tempo, %d dmg)" % [data.display_name, data.tempo_cost, get_damage()])
+	if data.tile_offsets.is_empty():
+		return
+	user._attack_tiles.emit(build_attack())
+
+## Attack from the user's current position and facing. Custom skills can tweak it before emitting.
+func build_attack() -> Attack:
+	var tiles := TilePattern.to_tiles(data.tile_offsets, user.map_position, user.facing)
+	return Attack.new(user, tiles, get_damage())
+
+## Skill damage before hit modifiers (backstab, crit). Not scaled by Tempo; that bonus is for basic attacks.
+func get_damage() -> int:
+	return roundi(user.dmg * data.damage_multiplier)

@@ -67,6 +67,7 @@ var tempo_level_progress: float:
 func _ready() -> void:
 	current_hp = max_hp
 	sprite.play("idle")
+	sprite.flip_h = facing
 
 func _process(delta: float) -> void:
 	_update_tempo_decay(delta)

@@ -1,0 +1,17 @@
+{
+	"id": "HorseAttack",
+	"name": "Knight Attack",
+	"tempo_cost": 1,
+	"description": "Knights fall form the sky?",
+	"damage_multiplier": 1,
+	"tiles": [
+		[1, 2],
+		[2, 1],
+		[2, -1],
+		[1, -2],
+		[-1, -2],
+		[-2, -1],
+		[-2, 1],
+		[-1, 2]
+	]
+}

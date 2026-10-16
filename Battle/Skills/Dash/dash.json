@@ -2,5 +2,7 @@
 	"id": "Dash",
 	"name": "Dash",
 	"tempo_cost": 1,
-	"description": "Test skill. Only logs its use."
+	"description": "Test skill. Strong hit on the tile in front.",
+	"damage_multiplier": 1.5,
+	"tiles": "in_front"
 }

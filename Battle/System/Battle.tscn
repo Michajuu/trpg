@@ -24,7 +24,6 @@ player_healtbar = NodePath("PlayerHealth")
 tempo_bar = NodePath("Tempometer")
 skill_bar = NodePath("Abilities")
 metadata/_edit_lock_ = true
-metadata/_edit_vertical_guides_ = [28.0]
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1792118902]
 position = Vector2(320, 240)

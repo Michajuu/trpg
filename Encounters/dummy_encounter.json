@@ -1,5 +1,13 @@
 {
-	"player_spawn": { "x": 1, "y": 2},
-	"enemies": [{"id": "Dummy","x": 4, "y": 2}],
+	"player_spawn": {"x": 1, "y": 2, "facing": "right"},
+	"enemies": [
+		{"id": "Dummy", "x": 3, "y": 1, "facing": "right"},
+		{"id": "Dummy", "x": 4, "y": 1, "facing": "right"},
+		{"id": "Dummy", "x": 5, "y": 1, "facing": "right"},
+		{"id": "Dummy", "x": 5, "y": 2, "facing": "right"},
+		{"id": "Dummy", "x": 3, "y": 3, "facing": "right"},
+		{"id": "Dummy", "x": 4, "y": 3, "facing": "right"},
+		{"id": "Dummy", "x": 5, "y": 3, "facing": "right"}
+	],
 	"obstacles": []
 }

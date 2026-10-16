@@ -43,6 +43,7 @@ func _ready() -> void:
 	player_instance.destination = player_instance.position
 	# Setting map position for movement
 	player_instance.map_position = Vector2i(encounter_data.player_spawn.x, encounter_data.player_spawn.y)
+	player_instance.facing = encounter_data.player_facing
 	# Setting player position on matrix
 	grid[encounter_data.player_spawn.y][encounter_data.player_spawn.x] = player_instance
 	# Connecting signals
@@ -67,6 +68,7 @@ func _ready() -> void:
 		enemy_instance.destination = enemy_instance.position
 		# Setting map position for movement
 		enemy_instance.map_position = Vector2i(enemy.position.x, enemy.position.y)
+		enemy_instance.facing = enemy.facing
 		# Setting enemy position on matrix
 		grid[enemy.position.y][enemy.position.x] = enemy_instance
 		# Adding enemy to an array
@@ -129,7 +131,8 @@ func _on_attack_tiles(attack: Attack) -> void:
 	for tile in attack.tiles:
 		if _is_in_bounds(tile):
 			var unit = grid[tile.y][tile.x]
-			if unit is Unit:
+			# Patterns may include the attacker's own tile; never hit yourself.
+			if unit is Unit and unit != attack.attacker:
 				unit._take_damage(attack.resolve_against(unit))
 
 func _on_enemy_death(enemy: Enemy):

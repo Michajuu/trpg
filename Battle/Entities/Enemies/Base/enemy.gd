@@ -20,6 +20,7 @@ var turnsUntilAttack: int = 0
 
 func _ready() -> void:
 	sprite.play("idle")
+	sprite.flip_h = facing
 	current_hp = max_hp
 	if health_bar:
 		health_bar.max_value = max_hp

@@ -1,0 +1,7 @@
+{
+	"id": "Block",
+	"name": "Block",
+	"tempo_cost": 1,
+	"description": "Negates incoming damage from the front",
+	"damage_multiplier": 0
+}
