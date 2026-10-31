@@ -18,6 +18,19 @@ signal _enemy_updated_position(enemy: Enemy, from_map_position: Vector2i, to_map
 var about_to_attack : bool = false
 var turnsUntilAttack: int = 0
 
+## AI behavior file (Battle/AI/<Id>/<id>.json, drag it here) used when the encounter doesn't pick one.
+## Empty = the enemy's own script decides (_decide_next_action).
+@export var default_ai: JSON
+## Data-driven AI made in the editor. Set by Battle from the encounter's "ai", else from default_ai; null = own script.
+var ai: AIBehavior
+var _missing_animations: Array[String] = []
+# Set by play_animation_until_arrival: go back to idle once the move animation reaches destination.
+var _idle_on_arrival: bool = false
+# move_speed to restore on arrival after set_move_speed_until_arrival; negative = nothing to restore.
+var _normal_move_speed: float = -1.0
+# Hits waiting for the move animation, in path order: {"at": Vector2, "hit": Callable}.
+var _contact_hits: Array[Dictionary] = []
+
 func _ready() -> void:
 	sprite.play("idle")
 	sprite.flip_h = facing
@@ -25,10 +38,92 @@ func _ready() -> void:
 	if health_bar:
 		health_bar.max_value = max_hp
 		health_bar.value = current_hp
+	if ai == null and default_ai:
+		ai = AIBehavior.from_json(default_ai)
+	sprite.animation_finished.connect(_on_sprite_animation_finished)
+
+## Plays an animation from the Sprite's SpriteFrames (used by the AI's "animation" fields).
+## Empty or missing name = "idle"; missing names are reported once per enemy.
+func play_animation(animation_name: String) -> void:
+	if animation_name.is_empty():
+		animation_name = "idle"
+	if not sprite.sprite_frames or not sprite.sprite_frames.has_animation(animation_name):
+		if animation_name not in _missing_animations:
+			_missing_animations.append(animation_name)
+			push_warning("%s: no animation '%s' in its Sprite's SpriteFrames, playing idle" % [name, animation_name])
+		animation_name = "idle"
+	if sprite.animation != animation_name or not sprite.is_playing():
+		sprite.play(animation_name)
+
+## Runs hit once the sprite reaches at on its current straight move (e.g. a charge hitting what's in front).
+## If at is the current position, it runs on the next frame.
+func add_contact_hit(at: Vector2, hit: Callable) -> void:
+	_contact_hits.append({"at": at, "hit": hit})
+
+## Plays an animation while the enemy moves (e.g. a charge) and returns to idle when it arrives.
+func play_animation_until_arrival(animation_name: String) -> void:
+	play_animation(animation_name)
+	_idle_on_arrival = true
+
+# A hit point is reached once the sprite is no farther from destination than it (moves are straight lines).
+func _run_contact_hits() -> void:
+	while not _contact_hits.is_empty() and not is_queued_for_deletion():
+		var next: Dictionary = _contact_hits.front()
+		if position.distance_to(destination) > next.at.distance_to(destination) + 0.5:
+			return
+		_contact_hits.pop_front()
+		next.hit.call()
+
+# One-shot (non-looping) animations return to idle when they end.
+func _on_sprite_animation_finished() -> void:
+	sprite.play("idle")
+
+## The enemy's turn; Battle calls it every time the player acts.
+func take_turn(astar: AStarGrid2D, player_map_position: Vector2i) -> void:
+	if ai:
+		ai.take_turn(self, astar)
+	else:
+		_decide_next_action(astar, player_map_position)
+
+func set_facing(new_facing: facing_direction) -> void:
+	facing = new_facing
+	sprite.flip_h = facing
+
+## Heals up to max_hp. Returns how much was actually healed.
+func heal(amount: int) -> int:
+	var healed := clampi(amount, 0, max_hp - current_hp)
+	current_hp += healed
+	if health_bar:
+		health_bar.value = current_hp
+	return healed
 
 func _process(delta: float) -> void:
 	if position != destination:
 		_move_toward_destination(delta)
+	_run_contact_hits()
+	if position == destination:
+		_on_arrived()
+
+## Ends the current move animation at once and lands its queued hits.
+## Battle calls it before the player acts, so an unfinished charge can't be dodged by moving mid-run.
+func finish_animations() -> void:
+	position = destination
+	_run_contact_hits()
+	_on_arrived()
+
+## Moves at speed until the current move ends (e.g. a charge), then goes back to move_speed.
+func set_move_speed_until_arrival(speed: float) -> void:
+	if _normal_move_speed < 0.0:
+		_normal_move_speed = move_speed
+	move_speed = speed
+
+func _on_arrived() -> void:
+	if _normal_move_speed >= 0.0:
+		move_speed = _normal_move_speed
+		_normal_move_speed = -1.0
+	if _idle_on_arrival:
+		_idle_on_arrival = false
+		play_animation("")
 
 func _take_damage(hit: Hit) -> void:
 	current_hp = max(current_hp - hit.damage, 0)

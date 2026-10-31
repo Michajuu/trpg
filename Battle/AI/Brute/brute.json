@@ -1,0 +1,28 @@
+{
+	"id": "Brute",
+	"name": "Brute",
+	"description": "Walks up to the player and hits the tile in front after a 1-turn warning.",
+	"rules": [
+		{
+			"conditions": [],
+			"action": {
+				"type": "attack",
+				"tiles": "in_front",
+				"damage_multiplier": 1,
+				"windup": 1,
+				"can_turn": true,
+				"needs_target": true,
+				"friendly_fire": false
+			},
+			"cooldown": 1
+		},
+		{
+			"conditions": [],
+			"action": {
+				"type": "approach",
+				"steps": 1
+			},
+			"cooldown": 0
+		}
+	]
+}

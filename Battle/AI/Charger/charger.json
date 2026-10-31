@@ -1,0 +1,32 @@
+{
+	"id": "Charger",
+	"name": "Charger",
+	"description": "Walks to the player's row until it sees the player, winds up for a turn, then charges straight ahead until it hits the player, another enemy or a wall.",
+	"rules": [
+		{
+			"conditions": [],
+			"action": {
+				"type": "charge",
+				"sight": 0,
+				"damage_multiplier": 1.5,
+				"windup": 1,
+				"can_turn": true,
+				"friendly_fire": true,
+				"pierce": false,
+				"speed": 2000,
+				"avoid_allies": true,
+				"windup_animation": "charge_up",
+				"animation": "charge"
+			},
+			"cooldown": 2
+		},
+		{
+			"conditions": [],
+			"action": {
+				"type": "approach",
+				"steps": 1
+			},
+			"cooldown": 0
+		}
+	]
+}

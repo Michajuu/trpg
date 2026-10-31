@@ -98,6 +98,7 @@ func _process(delta: float) -> void:
 		_move(new_map_position,new_position)
 	#Attacking
 	if Input.is_action_just_pressed("basic_attack") and AttackCooldownTimer.is_stopped():
+		manager.finish_enemy_animations()
 		var tile : Array[Vector2i] = [Vector2i(map_position.x+1*(-1 if facing else 1),map_position.y)]
 		AttackCooldownTimer.start()
 		_reset_tempo_decay()
@@ -121,12 +122,14 @@ func set_skills(new_skills: Array[Skill]) -> void:
 
 ## Using a skill counts as an action: resets Tempo decay and gives enemies their turn.
 func _use_skill(skill: Skill) -> void:
+	manager.finish_enemy_animations()
 	if not skill.use():
 		return
 	_reset_tempo_decay()
 	manager._move_enemies()
 
 func _move(new_map_position : Vector2i, new_position : Vector2):
+	manager.finish_enemy_animations()
 	if manager._can_move(self, map_position, new_map_position):
 		manager.astar.set_point_weight_scale(map_position, 1.0)
 		manager.astar.set_point_weight_scale(new_map_position, 5.0)

@@ -1,0 +1,465 @@
+class_name AIBehavior
+extends RefCounted
+
+## Data-driven enemy AI, made in the editor (AI page).
+## A behavior lives in its own folder: Battle/AI/<Id>/<id>.json
+## Every enemy turn the rules are checked top to bottom. The first rule whose conditions all hold
+## and whose action can actually be done (e.g. "attack" needs the player in its tiles) runs; the rest are skipped.
+## No rule runs = the enemy waits.
+##
+## {
+##   "id": "Brute", "name": "Brute", "description": "...",
+##   "rules": [
+##     {"conditions": [{"type": "hp_below", "percent": 30}], "action": {"type": "flee"}},
+##     {"conditions": [], "action": {"type": "attack", "tiles": "in_front", "damage_multiplier": 1.0, "windup": 1}, "cooldown": 1},
+##     {"conditions": [], "action": {"type": "approach"}}
+##   ]
+## }
+##
+## Conditions (all must hold; none = always):
+##   hp_below / hp_above {percent}        enemy's own HP compared to max HP
+##   player_within / player_farther_than {distance}   tiles to the player, no diagonals
+##   player_behind {}                     player stands behind the enemy (it can be backstabbed)
+##   chance {percent}                     random roll every turn
+## Actions:
+##   attack {tiles, damage_multiplier, windup, can_turn, needs_target, friendly_fire}
+##     tiles: preset name or [[x, y], ...] like skills (see TilePattern). windup: turns the warning tiles
+##     are shown before the hit (0 = hits at once). can_turn: may turn around to hit a player behind it.
+##     needs_target: only attacks when the player is in the tiles. friendly_fire: also hurts other enemies.
+##   charge {sight, damage_multiplier, windup, can_turn, friendly_fire, pierce, avoid_allies, speed}
+##     Sees the player in its row (sight: max tiles, 0 = whole row; obstacles block the view, enemies don't),
+##     winds up for windup turns with the lane shown as warning tiles, then rushes straight ahead to the first
+##     wall (obstacle or map edge). The first unit in the lane stops it and takes the hit: the player, or another
+##     enemy (hurt only with friendly_fire, default true). pierce (default false): run through enemies instead,
+##     hitting each one, and stop only at the player or a wall. The direction is locked when the windup starts.
+##     avoid_allies (default true): doesn't start a charge with another enemy between it and the player, and
+##     approach looks for a clear lane instead; enemies are then hit only if they step in during the windup.
+##     speed: run speed in pixels per second, only during the charge (default 2000; walking uses move_speed).
+##     can_turn: also looks behind itself. Takes "windup_animation" like attack; "animation" plays while rushing.
+##   approach {steps}   move toward a tile from which one of its attacks can hit the player (or a charge can see it)
+##   flee {steps}       move away from the player
+##   wander {}          step to a random free neighbour tile
+##   face_player {}     turn toward the player
+##   heal {percent}     heal % of max HP
+##   wait {}            do nothing
+## Every action also takes "animation": name of an animation in the enemy's Sprite (AnimatedSprite2D) to play
+##   when the action runs; for attack it plays when the hit lands. Attack also takes "windup_animation", held
+##   while the warning tiles are shown (e.g. a slime opening its mouth). Empty = "idle". A one-shot (non-looping)
+##   animation goes back to "idle" when it ends; a missing one logs a warning and plays "idle".
+## cooldown (per rule): after the rule runs it is skipped for that many turns.
+
+const BEHAVIORS_PATH := "res://Battle/AI/%s/%s.json"
+const CONDITIONS: Array[String] = ["hp_below", "hp_above", "player_within", "player_farther_than", "player_behind", "chance"]
+const ACTIONS: Array[String] = ["attack", "charge", "approach", "flee", "wander", "face_player", "heal", "wait"]
+const NEIGHBOURS: Array[Vector2i] = [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN]
+
+## Parsed rules per JSON file path, shared by every enemy using it (read-only after loading).
+static var _cache: Dictionary = {}
+
+var id: String
+var display_name: String
+var rules: Array[Dictionary] = []
+
+# Per-enemy state: every enemy gets its own AIBehavior instance.
+var _cooldowns: Array[int] = []
+var _pending_tiles: Array[Vector2i] = []
+var _pending_damage: int = 0
+var _pending_friendly_fire: bool = false
+var _pending_turns: int = 0
+var _pending_animation: String = ""
+var _pending_is_charge: bool = false
+var _pending_pierce: bool = false
+var _pending_speed: float = 0.0
+
+## Builds a behavior from its folder by id (the encounter's "ai"). Returns null (and logs an error) if it doesn't exist.
+static func load_behavior(behavior_id: String) -> AIBehavior:
+	var json_path := BEHAVIORS_PATH % [behavior_id, behavior_id.to_snake_case()]
+	if not ResourceLoader.exists(json_path):
+		push_error("AI '%s': missing %s" % [behavior_id, json_path])
+		return null
+	return from_json(load(json_path))
+
+## Builds a behavior from a behavior .json (e.g. an enemy's default_ai). Returns null (and logs an error) if it's invalid.
+## The id is the file's "id", or its folder name when that's missing.
+static func from_json(json: JSON) -> AIBehavior:
+	if json == null or not json.data is Dictionary:
+		var source := "null" if json == null else (json.resource_path if not json.resource_path.is_empty() else "JSON made in code")
+		push_error("AI: %s is not a valid behavior JSON object" % [source])
+		return null
+	var behavior_id := str(json.data.get("id", json.resource_path.get_base_dir().get_file()))
+	var key := json.resource_path
+	# JSON made in code has no path; parse it every time instead of caching.
+	var data: Dictionary = _cache.get(key, {}) if not key.is_empty() else {}
+	if data.is_empty():
+		data = _parse(behavior_id, json.data)
+		if not key.is_empty():
+			_cache[key] = data
+	var behavior := AIBehavior.new()
+	behavior.id = behavior_id
+	behavior.display_name = data.name
+	behavior.rules = data.rules
+	for i in behavior.rules.size():
+		behavior._cooldowns.append(0)
+	return behavior
+
+## Checks the rules once and drops broken ones, so mistakes are reported on load instead of every turn.
+static func _parse(behavior_id: String, dict: Dictionary) -> Dictionary:
+	var rules: Array[Dictionary] = []
+	for raw in dict.get("rules", []):
+		if not raw is Dictionary or not raw.get("action") is Dictionary:
+			push_error("AI '%s': rule %s has no action" % [behavior_id, raw])
+			continue
+		var action: Dictionary = raw.action.duplicate()
+		if str(action.get("type", "")) not in ACTIONS:
+			push_error("AI '%s': unknown action '%s' (actions: %s)" % [behavior_id, action.get("type"), ACTIONS])
+			continue
+		if action.type == "attack":
+			action.offsets = TilePattern.parse(action.get("tiles", "in_front"))
+		var conditions: Array[Dictionary] = []
+		var valid := true
+		for condition in raw.get("conditions", []):
+			if not condition is Dictionary or str(condition.get("type", "")) not in CONDITIONS:
+				push_error("AI '%s': unknown condition %s (conditions: %s)" % [behavior_id, condition, CONDITIONS])
+				valid = false
+				break
+			conditions.append(condition)
+		if valid:
+			rules.append({"conditions": conditions, "action": action, "cooldown": maxi(int(raw.get("cooldown", 0)), 0)})
+	return {"name": str(dict.get("name", behavior_id)), "rules": rules}
+
+## One enemy turn. Called by Enemy.take_turn every time the player acts.
+func take_turn(enemy: Enemy, astar: AStarGrid2D) -> void:
+	var used := _act(enemy, astar)
+	for i in _cooldowns.size():
+		_cooldowns[i] = maxi(_cooldowns[i] - 1, 0)
+	if used >= 0:
+		_cooldowns[used] = rules[used].cooldown
+
+## Returns the index of the rule that ran, or -1.
+func _act(enemy: Enemy, astar: AStarGrid2D) -> int:
+	# A telegraphed attack keeps the enemy busy until it lands.
+	if _pending_turns > 0:
+		_pending_turns -= 1
+		if _pending_turns == 0:
+			if _pending_is_charge:
+				_release_charge(enemy)
+			else:
+				_release_attack(enemy)
+		return -1
+	for i in rules.size():
+		if _cooldowns[i] > 0:
+			continue
+		var rule: Dictionary = rules[i]
+		if not _conditions_hold(rule.conditions, enemy):
+			continue
+		if _run_action(rule.action, enemy, astar):
+			# Attacks and charges pick their own animation (windup or hit).
+			if rule.action.type not in ["attack", "charge"]:
+				enemy.play_animation(str(rule.action.get("animation", "")))
+			return i
+	enemy.play_animation("")
+	return -1
+
+func _conditions_hold(conditions: Array[Dictionary], enemy: Enemy) -> bool:
+	for condition in conditions:
+		if not _condition_holds(condition, enemy):
+			return false
+	return true
+
+func _condition_holds(condition: Dictionary, enemy: Enemy) -> bool:
+	var player_pos: Vector2i = enemy.manager.player.map_position
+	match condition.type:
+		"hp_below":
+			return enemy.current_hp * 100.0 < float(condition.get("percent", 50)) * enemy.max_hp
+		"hp_above":
+			return enemy.current_hp * 100.0 > float(condition.get("percent", 50)) * enemy.max_hp
+		"player_within":
+			return _distance(enemy.map_position, player_pos) <= int(condition.get("distance", 1))
+		"player_farther_than":
+			return _distance(enemy.map_position, player_pos) > int(condition.get("distance", 1))
+		"player_behind":
+			return enemy.is_hit_from_behind(player_pos)
+		"chance":
+			return randf() * 100.0 < float(condition.get("percent", 50))
+	return false
+
+## Runs the action; false if it can't be done right now (then the next rule gets a chance).
+func _run_action(action: Dictionary, enemy: Enemy, astar: AStarGrid2D) -> bool:
+	match action.type:
+		"attack":
+			return _attack(action, enemy)
+		"charge":
+			return _charge(action, enemy)
+		"approach":
+			return _approach(enemy, astar, maxi(int(action.get("steps", 1)), 1))
+		"flee":
+			return _flee(enemy, maxi(int(action.get("steps", 1)), 1))
+		"wander":
+			return _wander(enemy)
+		"face_player":
+			return _face_player(enemy)
+		"heal":
+			return enemy.heal(roundi(enemy.max_hp * float(action.get("percent", 25)) / 100.0)) > 0
+		"wait":
+			return true
+	return false
+
+func _attack(action: Dictionary, enemy: Enemy) -> bool:
+	var offsets: Array[Vector2i] = action.offsets
+	if offsets.is_empty():
+		return false
+	var player_pos: Vector2i = enemy.manager.player.map_position
+	var tiles := TilePattern.to_tiles(offsets, enemy.map_position, enemy.facing)
+	if action.get("needs_target", true) and player_pos not in tiles:
+		if not action.get("can_turn", true):
+			return false
+		var other := _opposite(enemy.facing)
+		var turned := TilePattern.to_tiles(offsets, enemy.map_position, other)
+		if player_pos not in turned:
+			return false
+		enemy.set_facing(other)
+		tiles = turned
+	var damage := roundi(enemy.dmg * float(action.get("damage_multiplier", 1.0)))
+	var friendly_fire: bool = action.get("friendly_fire", false)
+	var windup := maxi(int(action.get("windup", 1)), 0)
+	var animation := str(action.get("animation", ""))
+	if windup == 0:
+		enemy.play_animation(animation)
+		_emit_attack(enemy, tiles, damage, friendly_fire, enemy.map_position)
+		return true
+	enemy.play_animation(str(action.get("windup_animation", "")))
+	_pending_animation = animation
+	_pending_tiles = tiles
+	_pending_damage = damage
+	_pending_friendly_fire = friendly_fire
+	_pending_turns = windup
+	_pending_is_charge = false
+	var visible: Array[Vector2i] = []
+	for tile in tiles:
+		if enemy.manager._is_in_bounds(tile):
+			visible.append(tile)
+	enemy._place_warning_tile(visible)
+	return true
+
+func _release_attack(enemy: Enemy) -> void:
+	enemy._remove_warning_tiles()
+	enemy.about_to_attack = false
+	enemy.play_animation(_pending_animation)
+	_emit_attack(enemy, _pending_tiles, _pending_damage, _pending_friendly_fire, enemy.map_position)
+
+func _emit_attack(enemy: Enemy, tiles: Array[Vector2i], damage: int, friendly_fire: bool, source: Vector2i) -> void:
+	var attack := Attack.new(enemy, tiles, damage)
+	attack.hits_allies = friendly_fire
+	attack.source_position = source
+	enemy._attack_tiles.emit(attack)
+
+func _charge(action: Dictionary, enemy: Enemy) -> bool:
+	var sight := maxi(int(action.get("sight", 0)), 0)
+	var avoid_allies: bool = action.get("avoid_allies", true)
+	if not _sees_player(enemy, enemy.facing, sight, avoid_allies):
+		if not action.get("can_turn", true) or not _sees_player(enemy, _opposite(enemy.facing), sight, avoid_allies):
+			return false
+		enemy.set_facing(_opposite(enemy.facing))
+	var damage := roundi(enemy.dmg * float(action.get("damage_multiplier", 1.0)))
+	var friendly_fire: bool = action.get("friendly_fire", true)
+	var pierce: bool = action.get("pierce", false)
+	var speed := maxf(float(action.get("speed", 2000)), 1.0)
+	var windup := maxi(int(action.get("windup", 1)), 0)
+	var animation := str(action.get("animation", ""))
+	if windup == 0:
+		_rush(enemy, damage, friendly_fire, pierce, speed, animation)
+		return true
+	enemy.play_animation(str(action.get("windup_animation", "")))
+	_pending_animation = animation
+	_pending_damage = damage
+	_pending_friendly_fire = friendly_fire
+	_pending_turns = windup
+	_pending_is_charge = true
+	_pending_pierce = pierce
+	_pending_speed = speed
+	enemy._place_warning_tile(_charge_lane(enemy, enemy.facing))
+	return true
+
+func _release_charge(enemy: Enemy) -> void:
+	enemy._remove_warning_tiles()
+	enemy.about_to_attack = false
+	_rush(enemy, _pending_damage, _pending_friendly_fire, _pending_pierce, _pending_speed, _pending_animation)
+
+# Hits whoever stands on tile when the charging sprite reaches from (a target that stepped away is missed).
+func _queue_contact_hit(enemy: Enemy, tile: Vector2i, from: Vector2i, damage: int, friendly_fire: bool) -> void:
+	var at := enemy.manager.map_position_to_position(from)
+	enemy.add_contact_hit(at, func() -> void:
+		var tiles: Array[Vector2i] = [tile]
+		_emit_attack(enemy, tiles, damage, friendly_fire, from))
+
+## Tiles from the enemy (excluded) to the first wall (excluded) in the given direction.
+func _charge_lane(enemy: Enemy, direction: Unit.facing_direction) -> Array[Vector2i]:
+	var step := Vector2i(-1 if direction == Unit.facing_direction.LEFT else 1, 0)
+	var lane: Array[Vector2i] = []
+	var tile: Vector2i = enemy.map_position + step
+	while enemy.manager._is_in_bounds(tile) and not enemy.manager.astar.is_point_solid(tile):
+		lane.append(tile)
+		tile += step
+	return lane
+
+# Reads the grid instead of player.map_position: when the player walks, enemies act before it is updated.
+# avoid_allies: another enemy in front of the player blocks the view (charging would hit it).
+func _sees_player(enemy: Enemy, direction: Unit.facing_direction, sight: int, avoid_allies: bool) -> bool:
+	var lane := _charge_lane(enemy, direction)
+	if sight > 0:
+		lane.resize(mini(sight, lane.size()))
+	for tile in lane:
+		var unit = enemy.manager.grid[tile.y][tile.x]
+		if unit is Player:
+			return true
+		if unit is Enemy and avoid_allies:
+			return false
+	return false
+
+## Runs down the lane and stops before the first unit (hitting it) or the wall.
+## With pierce, enemies are hit on the way and only the player or the wall stops it.
+## Where it stops is decided now; each hit lands when the sprite reaches the tile in front of the target.
+func _rush(enemy: Enemy, damage: int, friendly_fire: bool, pierce: bool, speed: float, animation: String) -> void:
+	var manager := enemy.manager
+	var landing: Vector2i = enemy.map_position
+	var from: Vector2i = enemy.map_position
+	for tile in _charge_lane(enemy, enemy.facing):
+		var unit = manager.grid[tile.y][tile.x]
+		if unit is Player or (unit is Enemy and friendly_fire):
+			_queue_contact_hit(enemy, tile, from, damage, friendly_fire)
+		if unit is Player or (unit is Enemy and not pierce):
+			break
+		if unit == null:
+			landing = tile
+		from = tile
+	if landing != enemy.map_position:
+		enemy._enemy_updated_position.emit(enemy, enemy.map_position, landing)
+		enemy.map_position = landing
+		enemy.destination = manager.map_position_to_position(landing)
+		enemy.play_animation_until_arrival(animation)
+		enemy.set_move_speed_until_arrival(speed)
+	else:
+		enemy.play_animation(animation)
+
+## Walks toward the closest tile from which one of the behavior's attacks reaches the player.
+func _approach(enemy: Enemy, astar: AStarGrid2D, steps: int) -> bool:
+	var player_pos: Vector2i = enemy.manager.player.map_position
+	var goals := _attack_spots(enemy, player_pos)
+	if enemy.map_position in goals:
+		return false
+	var best: Array[Vector2i] = []
+	# Path around other enemies, not through them (a step into an occupied tile would fail).
+	var blocked := _block_other_enemies(enemy, astar)
+	for goal in goals:
+		var path := enemy._try_path_to(astar, goal)
+		if path.size() > 1 and (best.is_empty() or path.size() < best.size()):
+			best = path
+	for tile in blocked:
+		astar.set_point_solid(tile, false)
+	# No free spot reachable: at least head for the player.
+	if best.is_empty():
+		best = enemy._try_path_to(astar, player_pos)
+		best.resize(maxi(best.size() - 1, 0))
+	var moved := false
+	for i in range(1, mini(steps + 1, best.size())):
+		if not _step(enemy, best[i]):
+			break
+		moved = true
+	return moved
+
+## Marks the tiles of all other enemies solid; returns them so the caller can clear them again.
+func _block_other_enemies(enemy: Enemy, astar: AStarGrid2D) -> Array[Vector2i]:
+	var blocked: Array[Vector2i] = []
+	for other in enemy.manager.enemies:
+		if other != enemy and is_instance_valid(other) and not astar.is_point_solid(other.map_position):
+			astar.set_point_solid(other.map_position, true)
+			blocked.append(other.map_position)
+	return blocked
+
+## Free tiles from which some attack of this behavior (in either facing) would hit the player,
+## plus tiles in the player's row from which a charge would see it.
+## Without attacks or charges: the four tiles around the player.
+func _attack_spots(enemy: Enemy, player_pos: Vector2i) -> Array[Vector2i]:
+	var offsets: Array[Vector2i] = []
+	var candidates: Array[Vector2i] = []
+	for rule in rules:
+		if rule.action.type == "attack":
+			offsets.append_array(rule.action.offsets)
+		elif rule.action.type == "charge":
+			var sight := maxi(int(rule.action.get("sight", 0)), 0)
+			candidates.append_array(_charge_spots(enemy, player_pos, sight, rule.action.get("avoid_allies", true)))
+	if offsets.is_empty() and candidates.is_empty():
+		for n in NEIGHBOURS:
+			candidates.append(player_pos + n)
+	else:
+		for offset in offsets:
+			candidates.append(player_pos - offset)
+			candidates.append(player_pos - Vector2i(-offset.x, offset.y))
+	var spots: Array[Vector2i] = []
+	for tile in candidates:
+		if tile not in spots and (tile == enemy.map_position or _is_free(enemy, tile)):
+			spots.append(tile)
+	return spots
+
+## Tiles in the player's row, on both sides up to the first wall (and within sight; 0 = whole row).
+## avoid_allies: also stops at the first other enemy, so the lane to the player is clear.
+func _charge_spots(enemy: Enemy, player_pos: Vector2i, sight: int, avoid_allies: bool) -> Array[Vector2i]:
+	var spots: Array[Vector2i] = []
+	for step in [Vector2i.LEFT, Vector2i.RIGHT]:
+		var tile: Vector2i = player_pos + step
+		while enemy.manager._is_in_bounds(tile) and not enemy.manager.astar.is_point_solid(tile):
+			if sight > 0 and _distance(tile, player_pos) > sight:
+				break
+			var unit = enemy.manager.grid[tile.y][tile.x]
+			if avoid_allies and unit is Enemy and unit != enemy:
+				break
+			spots.append(tile)
+			tile += step
+	return spots
+
+func _flee(enemy: Enemy, steps: int) -> bool:
+	var player_pos: Vector2i = enemy.manager.player.map_position
+	var moved := false
+	for i in steps:
+		var best: Vector2i = enemy.map_position
+		for n in NEIGHBOURS:
+			var tile: Vector2i = enemy.map_position + n
+			if _is_free(enemy, tile) and _distance(tile, player_pos) > _distance(best, player_pos):
+				best = tile
+		if best == enemy.map_position or not _step(enemy, best):
+			break
+		moved = true
+	return moved
+
+func _wander(enemy: Enemy) -> bool:
+	var options: Array[Vector2i] = []
+	for n in NEIGHBOURS:
+		var tile: Vector2i = enemy.map_position + n
+		if _is_free(enemy, tile):
+			options.append(tile)
+	return not options.is_empty() and _step(enemy, options.pick_random())
+
+func _face_player(enemy: Enemy) -> bool:
+	var dx: int = enemy.manager.player.map_position.x - enemy.map_position.x
+	var wanted := Unit.facing_direction.LEFT if dx < 0 else Unit.facing_direction.RIGHT
+	if dx == 0 or wanted == enemy.facing:
+		return false
+	enemy.set_facing(wanted)
+	return true
+
+func _step(enemy: Enemy, tile: Vector2i) -> bool:
+	if not enemy.manager._can_move(enemy, enemy.map_position, tile):
+		return false
+	var path: Array[Vector2i] = [enemy.map_position, tile]
+	enemy._commit_move(path)
+	return true
+
+func _is_free(enemy: Enemy, tile: Vector2i) -> bool:
+	var manager := enemy.manager
+	return manager._is_in_bounds(tile) and manager.grid[tile.y][tile.x] == null and not manager.astar.is_point_solid(tile)
+
+static func _distance(a: Vector2i, b: Vector2i) -> int:
+	return absi(a.x - b.x) + absi(a.y - b.y)
+
+static func _opposite(f: Unit.facing_direction) -> Unit.facing_direction:
+	return Unit.facing_direction.LEFT if f == Unit.facing_direction.RIGHT else Unit.facing_direction.RIGHT

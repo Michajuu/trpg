@@ -1,0 +1,63 @@
+[gd_scene format=3 uid="uid://bt8ij28dolkr4"]
+
+[ext_resource type="PackedScene" uid="uid://dmi7aprfeipx8" path="res://Battle/Entities/Enemies/Base/Enemy.tscn" id="1_veqgl"]
+[ext_resource type="Script" uid="uid://b04fpylkmlhwe" path="res://Battle/Entities/Enemies/Base/enemy.gd" id="2_script"]
+[ext_resource type="Texture2D" uid="uid://b4i8ttvto3duv" path="res://Battle/Entities/Enemies/Charger/charger-idle.png" id="3_tex"]
+[ext_resource type="JSON" path="res://Battle/AI/Charger/charger.json" id="4_ai"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wjxvx"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle0"]
+atlas = ExtResource("3_tex")
+region = Rect2(0, 0, 96, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle1"]
+atlas = ExtResource("3_tex")
+region = Rect2(96, 0, 96, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle2"]
+atlas = ExtResource("3_tex")
+region = Rect2(192, 0, 96, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle3"]
+atlas = ExtResource("3_tex")
+region = Rect2(288, 0, 96, 64)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_charger"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle3")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 5.0
+}]
+
+[node name="Charger" unique_id=2104467743 node_paths=PackedStringArray("health_bar") instance=ExtResource("1_veqgl")]
+script = ExtResource("2_script")
+health_bar = NodePath("HealthBar")
+default_ai = ExtResource("4_ai")
+unit_name = "Charger"
+max_hp = 50
+dmg = 12
+
+[node name="HealthBar" parent="." index="0" unique_id=816827700]
+z_index = 1
+offset_top = -7.0
+offset_bottom = -2.0
+theme_override_styles/background = SubResource("StyleBoxFlat_wjxvx")
+
+[node name="Sprite" parent="." index="1" unique_id=584000944]
+sprite_frames = SubResource("SpriteFrames_charger")
+animation = &"idle"
+flip_h = true

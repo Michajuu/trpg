@@ -20,6 +20,8 @@ var backstab_multiplier: float = DEFAULT_BACKSTAB_MULTIPLIER
 var crit_chance: float
 ## Damage multiplier on a critical hit. Defaults to the attacker's stat.
 var crit_multiplier: float
+## False = an enemy's attack doesn't hurt other enemies (AI attacks without friendly_fire).
+var hits_allies: bool = true
 
 func _init(p_attacker: Unit, p_tiles: Array[Vector2i], p_damage: int) -> void:
 	attacker = p_attacker

@@ -69,6 +69,9 @@ func _ready() -> void:
 		# Setting map position for movement
 		enemy_instance.map_position = Vector2i(enemy.position.x, enemy.position.y)
 		enemy_instance.facing = enemy.facing
+		# AI picked in the encounter; without one the enemy uses its default_ai or own script
+		if not enemy.ai.is_empty():
+			enemy_instance.ai = AIBehavior.load_behavior(enemy.ai)
 		# Setting enemy position on matrix
 		grid[enemy.position.y][enemy.position.x] = enemy_instance
 		# Adding enemy to an array
@@ -114,8 +117,18 @@ func _process(_delta: float) -> void:
 		get_tree().quit()
 
 func _move_enemies() -> void:
-	for enemy : Enemy in enemies:
-		enemy._decide_next_action(astar, player.map_position)
+	# Copy: an enemy can die during the loop (e.g. friendly fire), which erases it from enemies.
+	for enemy : Enemy in enemies.duplicate():
+		if is_instance_valid(enemy) and not enemy.is_queued_for_deletion():
+			enemy.take_turn(astar, player.map_position)
+
+## Snaps every enemy to the end of its move, landing queued hits (e.g. a charge) before the player's
+## next action changes the grid. The player calls it at the start of every action.
+func finish_enemy_animations() -> void:
+	# Copy: a landed hit can kill an enemy, which erases it from enemies.
+	for enemy : Enemy in enemies.duplicate():
+		if is_instance_valid(enemy) and not enemy.is_queued_for_deletion():
+			enemy.finish_animations()
 
 func _can_move(unit: Unit ,from_map_position: Vector2i,to_map_position: Vector2i) -> bool:
 	if to_map_position.x <= map_size.x and to_map_position.y <= map_size.y and to_map_position.x != -1 and to_map_position.y != -1:
@@ -133,6 +146,8 @@ func _on_attack_tiles(attack: Attack) -> void:
 			var unit = grid[tile.y][tile.x]
 			# Patterns may include the attacker's own tile; never hit yourself.
 			if unit is Unit and unit != attack.attacker:
+				if not attack.hits_allies and unit is Enemy and attack.attacker is Enemy:
+					continue
 				unit._take_damage(attack.resolve_against(unit))
 
 func _on_enemy_death(enemy: Enemy):

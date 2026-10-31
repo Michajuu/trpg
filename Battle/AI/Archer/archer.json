@@ -1,0 +1,45 @@
+{
+	"id": "Archer",
+	"name": "Archer",
+	"description": "Keeps its distance and shoots 2-4 tiles ahead.",
+	"rules": [
+		{
+			"conditions": [
+				{
+					"type": "player_within",
+					"distance": 1
+				}
+			],
+			"action": {
+				"type": "flee",
+				"steps": 1
+			},
+			"cooldown": 0
+		},
+		{
+			"conditions": [],
+			"action": {
+				"type": "attack",
+				"tiles": [
+					[2, 0],
+					[3, 0],
+					[4, 0]
+				],
+				"damage_multiplier": 0.8,
+				"windup": 1,
+				"can_turn": true,
+				"needs_target": true,
+				"friendly_fire": false
+			},
+			"cooldown": 1
+		},
+		{
+			"conditions": [],
+			"action": {
+				"type": "approach",
+				"steps": 1
+			},
+			"cooldown": 0
+		}
+	]
+}

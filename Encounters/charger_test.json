@@ -1,0 +1,9 @@
+{
+	"player_spawn": {"x": 1, "y": 2, "facing": "right"},
+	"enemies": [
+		{"id": "Slime", "x": 6, "y": 1, "facing": "left"},
+		{"id": "Charger", "x": 6, "y": 2, "facing": "left"},
+		{"id": "Slime", "x": 6, "y": 3, "facing": "left"}
+	],
+	"obstacles": []
+}
