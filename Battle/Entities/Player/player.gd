@@ -1,7 +1,7 @@
 class_name Player
 extends Unit
 
-signal update_player_healthbar(new_hp: int)
+signal hp_changed(current_hp: int, max_hp: int)
 signal tempo_changed(tempo: int, level_progress: float)
 
 const MAX_TEMPO_PERCENTAGE := 200
@@ -10,6 +10,11 @@ const SKILL_ACTIONS: Array[String] = ["first_skill", "secound_skill", "thrid_ski
 
 ## Skills the player brought into this battle; set by Battle via set_skills.
 var skills: Array[Skill] = []
+
+## Player HP is counted in half-hearts (max_hp 8 = 4 hearts), Zelda-style.
+## Incoming damage is converted: every started damage_per_half_heart takes one half-heart,
+## so enemy dmg stats stay in the same units as enemy HP (friendly fire keeps working).
+@export var damage_per_half_heart: int = 10
 
 ## How many Tempo percent a single basic attack grants.
 @export var tempo_per_attack: int = 5
@@ -66,6 +71,7 @@ var tempo_level_progress: float:
 
 func _ready() -> void:
 	current_hp = max_hp
+	hp_changed.emit(current_hp, max_hp)
 	sprite.play("idle")
 	sprite.flip_h = facing
 
@@ -177,6 +183,12 @@ func spend_tempo(amount: int) -> bool:
 	tempo_percentage = 0 if new_level <= 0 else tempo_thresholds[new_level - 1]
 	return true
 
+## Converts raw damage into half-hearts, rounding up: any hit that deals damage costs at least half a heart.
+func damage_to_half_hearts(damage: int) -> int:
+	if damage <= 0:
+		return 0
+	return ceili(float(damage) / maxi(damage_per_half_heart, 1))
+
 func _take_damage(hit: Hit) -> void:
-	current_hp = max(current_hp - hit.damage, 0)
-	update_player_healthbar.emit(current_hp)
+	current_hp = max(current_hp - damage_to_half_hearts(hit.damage), 0)
+	hp_changed.emit(current_hp, max_hp)

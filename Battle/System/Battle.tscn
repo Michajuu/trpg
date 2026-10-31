@@ -4,13 +4,9 @@
 [ext_resource type="JSON" path="res://Encounters/charger_test.json" id="2_jm2ld"]
 [ext_resource type="Texture2D" uid="uid://026p6vv2gnnl" path="res://Battle/System/battle-area.png" id="3_0l6bm"]
 [ext_resource type="PackedScene" uid="uid://bav60v4j7opky" path="res://Battle/System/Tempometer/tempometer.tscn" id="4_jm2ld"]
+[ext_resource type="PackedScene" path="res://Battle/System/Hearts/heart_bar.tscn" id="5_heart"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_s1fef"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_khhxn"]
-bg_color = Color(1, 0.14117648, 0.1764706, 1)
-
-[node name="Battle" type="Control" unique_id=2123567974 node_paths=PackedStringArray("player_healtbar", "tempo_bar", "skill_bar")]
+[node name="Battle" type="Control" unique_id=2123567974 node_paths=PackedStringArray("heart_bar", "tempo_bar", "skill_bar")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -20,10 +16,11 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_d7upo")
 encounter_json = ExtResource("2_jm2ld")
-player_healtbar = NodePath("PlayerHealth")
+heart_bar = NodePath("HeartBar")
 tempo_bar = NodePath("Tempometer")
 skill_bar = NodePath("Abilities")
 metadata/_edit_lock_ = true
+metadata/_edit_vertical_guides_ = [32.0]
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1792118902]
 position = Vector2(320, 240)
@@ -34,21 +31,12 @@ position = Vector2(320, 284)
 texture = ExtResource("3_0l6bm")
 metadata/_edit_lock_ = true
 
-[node name="PlayerHealth" type="ProgressBar" parent="." unique_id=65488900]
-layout_mode = 1
-anchors_preset = 2
-anchor_top = 1.0
-anchor_bottom = 1.0
-offset_left = 28.0
-offset_top = -100.0
-offset_right = 198.0
-offset_bottom = -84.0
-grow_vertical = 0
-theme_override_styles/background = SubResource("StyleBoxFlat_s1fef")
-theme_override_styles/fill = SubResource("StyleBoxFlat_khhxn")
-value = 100.0
-show_percentage = false
-metadata/_edit_lock_ = true
+[node name="HeartBar" parent="." unique_id=2023187300 instance=ExtResource("5_heart")]
+layout_mode = 0
+offset_left = 32.0
+offset_top = 370.0
+offset_right = 166.0
+offset_bottom = 402.0
 
 [node name="Tempometer" parent="." unique_id=2002083312 instance=ExtResource("4_jm2ld")]
 position = Vector2(60, 438)

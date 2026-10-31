@@ -97,6 +97,7 @@ animations = [{
 [node name="Player" type="Node2D" unique_id=1318498279]
 z_index = 1
 script = ExtResource("2_nnnvb")
+max_hp = 8
 
 [node name="Sprite" type="AnimatedSprite2D" parent="." unique_id=820622764]
 position = Vector2(0, 2)

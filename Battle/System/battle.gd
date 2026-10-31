@@ -2,7 +2,7 @@ class_name Battle_Manager
 extends Control
 
 @export var encounter_json: JSON
-@export var player_healtbar: ProgressBar
+@export var heart_bar: HeartBar
 @export var tempo_bar: TempoBar
 ## Container that gets one skill slot per skill in skill_loadout.
 @export var skill_bar: Container
@@ -48,7 +48,8 @@ func _ready() -> void:
 	grid[encounter_data.player_spawn.y][encounter_data.player_spawn.x] = player_instance
 	# Connecting signals
 	player_instance._attack_tiles.connect(_on_attack_tiles)
-	player_instance.update_player_healthbar.connect(_on_update_player_healthbar)
+	if heart_bar:
+		player_instance.hp_changed.connect(heart_bar.update_hp)
 	if tempo_bar:
 		player_instance.tempo_changed.connect(tempo_bar.update_tempo)
 		tempo_bar.update_tempo(player_instance.tempo, player_instance.tempo_level_progress)
@@ -154,9 +155,6 @@ func _on_enemy_death(enemy: Enemy):
 	grid[enemy.map_position.y][enemy.map_position.x] = null
 	enemies.erase(enemy)
 	enemy.queue_free()
-
-func _on_update_player_healthbar(new_hp: int):
-	player_healtbar.value = new_hp
 
 func _is_player_there(tiles: Array[Vector2i]) -> bool:
 	for tile in tiles:

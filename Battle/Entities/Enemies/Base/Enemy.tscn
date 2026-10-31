@@ -12,6 +12,7 @@ bg_color = Color(1, 0.14117648, 0.1764706, 1)
 
 [node name="Enemy" type="Node2D" unique_id=889287356]
 script = ExtResource("2_l2pob")
+crit_chance = 0.0
 
 [node name="HealthBar" type="ProgressBar" parent="." unique_id=816827700]
 offset_left = -16.0
