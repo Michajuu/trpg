@@ -87,13 +87,11 @@ func _process(delta: float) -> void:
 	elif Input.is_action_just_pressed("ui_right"):
 		var new_map_position = Vector2i(map_position.x + 1, map_position.y)
 		var new_position = Vector2(position.x+46, position.y)
-		facing = facing_direction.RIGHT
-		_move(new_map_position,new_position)
+		_move(new_map_position,new_position,facing_direction.RIGHT)
 	elif Input.is_action_just_pressed("ui_left"):
 		var new_map_position = Vector2i(map_position.x - 1, map_position.y)
 		var new_position = Vector2(position.x-46, position.y)
-		facing = facing_direction.LEFT
-		_move(new_map_position,new_position)
+		_move(new_map_position,new_position,facing_direction.LEFT)
 	elif Input.is_action_just_pressed("ui_up"):
 		var new_map_position = Vector2i(map_position.x, map_position.y - 1)
 		var new_position = Vector2(position.x+32, position.y-32)
@@ -134,16 +132,25 @@ func _use_skill(skill: Skill) -> void:
 	_reset_tempo_decay()
 	manager._move_enemies()
 
-func _move(new_map_position : Vector2i, new_position : Vector2):
+## new_facing is applied only if the move succeeds. A move blocked by an enemy behind the player turns them
+## toward it instead (costs an action); any other blocked move changes nothing.
+func _move(new_map_position : Vector2i, new_position : Vector2, new_facing : facing_direction = facing):
 	manager.finish_enemy_animations()
+	# Set before _can_move: on success enemies take their turn inside it and must see the new facing.
+	var old_facing := facing
+	facing = new_facing
 	if manager._can_move(self, map_position, new_map_position):
 		manager.astar.set_point_weight_scale(map_position, 1.0)
 		manager.astar.set_point_weight_scale(new_map_position, 5.0)
 		map_position = new_map_position
 		destination = new_position
 		_reset_tempo_decay()
+	elif new_facing != old_facing and manager._has_enemy_in([new_map_position] as Array[Vector2i]):
+		# Turning toward the enemy costs as much as a move: enemies take their turn.
+		_reset_tempo_decay()
+		manager._move_enemies()
 	else:
-		facing = facing_direction.RIGHT if facing == facing_direction.LEFT else facing_direction.LEFT
+		facing = old_facing
 
 ## Basic attack damage: dmg scaled by the current Tempo level.
 func get_basic_attack_damage() -> int:

@@ -24,6 +24,8 @@ into that day's version; the next day of work starts a new version. When startin
 - Game version shown in the bottom-right corner of every screen (autoload `VersionLabel`,
   `Global/VersionLabel/`). It reads `application/config/version` from `project.godot`.
 - This changelog.
+- Turning toward an enemy behind you: moving into an enemy you have your back to turns the player around
+  instead. It costs as much as a move: enemies take their turn and Tempo decay is reset.
 
 ### Changed
 - Units are depth-sorted by grid row (`z_index` set from `map_position`), so units closer to the camera draw over
@@ -32,6 +34,7 @@ into that day's version; the next day of work starts a new version. When startin
 
 ### Fixed
 - Warning tiles drew over enemies; they now lie on the floor below every unit.
+- A blocked move no longer turns the player around for free (bumping into a wall or an enemy flipped facing).
 
 ## [0.6.0] - 2026-10-31
 
