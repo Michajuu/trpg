@@ -1,0 +1,28 @@
+{
+	"id": "HauntedArmor",
+	"name": "Haunted Armor",
+	"description": "Walks up to the player and sweeps the 3 tiles in front of itself after a 1-turn warning.",
+	"rules": [
+		{
+			"conditions": [],
+			"action": {
+				"type": "attack",
+				"tiles": "wide_front",
+				"damage_multiplier": 1,
+				"windup": 1,
+				"can_turn": true,
+				"needs_target": true,
+				"friendly_fire": false
+			},
+			"cooldown": 1
+		},
+		{
+			"conditions": [],
+			"action": {
+				"type": "approach",
+				"steps": 1
+			},
+			"cooldown": 0
+		}
+	]
+}

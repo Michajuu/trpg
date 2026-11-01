@@ -1,7 +1,7 @@
 {
 	"id": "Wisp",
 	"name": "Wisp",
-	"description": "Floats up to the player and strikes one diagonal tile in front of itself (upper or lower, whichever the player is on) after a 1-turn warning.",
+	"description": "Floats up to the player and strikes one diagonal tile in front of itself (upper or lower, whichever the player is on) after a 1-turn warning. If there is a Remains (e.g. its Haunted Armor), it returns to it instead of chasing the player and revives it after standing on it for 2 turns.",
 	"rules": [
 		{
 			"conditions": [],
@@ -32,6 +32,15 @@
 				"friendly_fire": false
 			},
 			"cooldown": 1
+		},
+		{
+			"conditions": [],
+			"action": {
+				"type": "possess",
+				"turns": 2,
+				"steps": 1
+			},
+			"cooldown": 0
 		},
 		{
 			"conditions": [],

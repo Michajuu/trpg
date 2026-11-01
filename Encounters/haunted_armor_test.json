@@ -1,0 +1,11 @@
+{
+	"player_spawn": {"x": 1, "y": 2, "facing": "right"},
+	"enemies": [
+		{"id": "HauntedArmor", "x": 3, "y": 2, "facing": "left"},
+		{"id": "Wisp", "x": 7, "y": 0, "facing": "left"}
+	],
+	"remains": [
+		{"id": "HauntedArmor", "x": 6, "y": 0, "facing": "left"}
+	],
+	"obstacles": []
+}

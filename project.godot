@@ -11,8 +11,13 @@ config_version=5
 [application]
 
 config/name="TRPG prototyp"
+config/version="0.7.0"
 run/main_scene="uid://osxylfn8e8rs"
 config/features=PackedStringArray("4.7", "Forward Plus")
+
+[autoload]
+
+VersionLabel="*res://Global/VersionLabel/version_label.tscn"
 
 [display]
 

@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://dytabottkb15d"]
+
+[ext_resource type="PackedScene" uid="uid://dmi7aprfeipx8" path="res://Battle/Entities/Enemies/Base/Enemy.tscn" id="1_r75yp"]
+[ext_resource type="JSON" path="res://Battle/AI/HauntedArmor/haunted_armor.json" id="2_nv6ae"]
+[ext_resource type="Texture2D" uid="uid://duqdi73636ghn" path="res://Battle/Entities/Enemies/HauntedArmor/haunted-knight.png" id="3_pga2s"]
+[ext_resource type="Texture2D" uid="uid://chq82ip0veif6" path="res://Battle/Entities/Enemies/HauntedArmor/knight-armor.png" id="4_armor"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wjxvx"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_haunted_armor"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("3_pga2s")
+}],
+"loop": 1,
+"name": &"idle",
+"speed": 5.0
+}]
+
+[node name="HauntedArmor" unique_id=2104467743 node_paths=PackedStringArray("health_bar") instance=ExtResource("1_r75yp")]
+health_bar = NodePath("HealthBar")
+default_ai = ExtResource("2_nv6ae")
+unit_name = "Haunted Armor"
+max_hp = 40
+dmg = 10
+death_spawn_id = "Wisp"
+leaves_remains = true
+remains_hp = 20
+remains_texture = ExtResource("4_armor")
+remains_modulate = Color(1, 1, 1, 1)
+
+[node name="HealthBar" parent="." index="0" unique_id=816827700]
+z_index = 1
+offset_top = -39.0
+offset_bottom = -34.0
+theme_override_styles/background = SubResource("StyleBoxFlat_wjxvx")
+
+[node name="Sprite" parent="." index="1" unique_id=584000944]
+sprite_frames = SubResource("SpriteFrames_haunted_armor")
+animation = &"idle"
+flip_h = true

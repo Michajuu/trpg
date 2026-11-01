@@ -28,6 +28,10 @@ var grid = [
 var astar = AStarGrid2D.new()
 
 var enemies : Array[Enemy]
+## Bodies of dead enemies that can be revived (Enemy.leaves_remains). Not in grid: units can stand on them.
+var remains : Array[Remains]
+
+const NO_TILE := Vector2i(-1, -1)
 
 var map_size = Vector2i(8,4)
 
@@ -61,31 +65,10 @@ func _ready() -> void:
 	add_child(player_instance)
 	
 	for enemy : UnitData in encounter_data.enemies:
-		var enemy_scene = load("res://Battle/Entities/Enemies/%s/%s.tscn" % [enemy.id, enemy.id])
-		var enemy_instance : Enemy = enemy_scene.instantiate()
-		# Setting player position on grid
-		enemy_instance.position.x = POSITION_ZERO.x + (enemy.position.x * 46) - (enemy.position.y * 32)
-		enemy_instance.position.y = POSITION_ZERO.y + (enemy.position.y * 32)
-		enemy_instance.destination = enemy_instance.position
-		# Setting map position for movement
-		enemy_instance.map_position = Vector2i(enemy.position.x, enemy.position.y)
-		enemy_instance.facing = enemy.facing
-		# AI picked in the encounter; without one the enemy uses its default_ai or own script
-		if not enemy.ai.is_empty():
-			enemy_instance.ai = AIBehavior.load_behavior(enemy.ai)
-		# Setting enemy position on matrix
-		grid[enemy.position.y][enemy.position.x] = enemy_instance
-		# Adding enemy to an array
-		enemies.append(enemy_instance)
-		# Connecting signlas
-		enemy_instance._enemy_updated_position.connect(_on_enemy_update_position)
-		enemy_instance._attack_tiles.connect(_on_attack_tiles)
-		enemy_instance.enemy_died.connect(_on_enemy_death)
-		# Setting refrence to parent
-		enemy_instance.manager = self
-		
-		add_child(enemy_instance)
-	
+		spawn_enemy(enemy.id, enemy.position, enemy.facing, enemy.ai)
+	for body : UnitData in encounter_data.remains:
+		spawn_remains(body.id, body.position, body.facing, body.ai)
+
 	for obstacle : UnitData in encounter_data.obstacles:
 		var obstacle_scene = load("res://Battle/Entities/Obstacles/%s/%s.tscn" % [obstacle.id, obstacle.id])
 		var obstacle_instance = obstacle_scene.instantiate()
@@ -93,6 +76,76 @@ func _ready() -> void:
 		grid[obstacle.position.y][obstacle.position.x] = obstacle_instance
 		astar.set_point_solid(obstacle.position, true)
 		add_child(obstacle_instance)
+
+## Adds an enemy (folder name in Battle/Entities/Enemies) on a free tile. Works mid-battle too (death spawns,
+## revives); an enemy added during the enemies' turn acts from the next one. ai_id: AI override, empty = default_ai.
+func spawn_enemy(id: String, tile: Vector2i, facing: Unit.facing_direction, ai_id: String = "") -> Enemy:
+	var scene_path := "res://Battle/Entities/Enemies/%s/%s.tscn" % [id, id]
+	if not ResourceLoader.exists(scene_path):
+		push_error("Enemy '%s': missing %s" % [id, scene_path])
+		return null
+	var enemy_instance : Enemy = load(scene_path).instantiate()
+	enemy_instance.enemy_id = id
+	enemy_instance.ai_id = ai_id
+	enemy_instance.position = map_position_to_position(tile)
+	enemy_instance.destination = enemy_instance.position
+	# Setting map position for movement
+	enemy_instance.map_position = tile
+	enemy_instance.facing = facing
+	# AI picked in the encounter; without one the enemy uses its default_ai or own script
+	if not ai_id.is_empty():
+		enemy_instance.ai = AIBehavior.load_behavior(ai_id)
+	grid[tile.y][tile.x] = enemy_instance
+	enemies.append(enemy_instance)
+	enemy_instance._enemy_updated_position.connect(_on_enemy_update_position)
+	enemy_instance._attack_tiles.connect(_on_attack_tiles)
+	enemy_instance.enemy_died.connect(_on_enemy_death)
+	enemy_instance.manager = self
+	add_child(enemy_instance)
+	return enemy_instance
+
+## Brings remains back as their enemy with full HP. The possessor (e.g. a Wisp) merges into it and disappears.
+func revive_remains(target: Remains, possessor: Enemy) -> Enemy:
+	_remove_enemy(possessor)
+	remains.erase(target)
+	target.queue_free()
+	return spawn_enemy(target.enemy_id, target.map_position, possessor.facing, target.ai_id)
+
+## Places an empty body of enemy id on tile (encounter "remains"), as if it had died there.
+## Any enemy with the AI action "possess" can bring it to life.
+func spawn_remains(id: String, tile: Vector2i, facing: Unit.facing_direction, ai_id: String = "") -> Remains:
+	var scene_path := "res://Battle/Entities/Enemies/%s/%s.tscn" % [id, id]
+	if not ResourceLoader.exists(scene_path):
+		push_error("Remains '%s': missing %s" % [id, scene_path])
+		return null
+	# Never added to the tree: only read for its look and remains settings.
+	var template : Enemy = load(scene_path).instantiate()
+	template.enemy_id = id
+	template.ai_id = ai_id
+	template.map_position = tile
+	template.facing = facing
+	var body := _add_remains(template)
+	template.free()
+	return body
+
+func _add_remains(enemy: Enemy) -> Remains:
+	var body := Remains.from_enemy(enemy)
+	body.position = map_position_to_position(body.map_position)
+	body.manager = self
+	body.destroyed.connect(_on_remains_destroyed)
+	remains.append(body)
+	add_child(body)
+	return body
+
+func _on_remains_destroyed(body: Remains) -> void:
+	remains.erase(body)
+
+## Remains lying on tile, or null.
+func remains_at(tile: Vector2i) -> Remains:
+	for body in remains:
+		if body.map_position == tile:
+			return body
+	return null
 
 ## Loads the skills from skill_loadout, gives them to the player and builds their slots.
 func _setup_skills(player_instance: Player) -> void:
@@ -150,11 +203,52 @@ func _on_attack_tiles(attack: Attack) -> void:
 				if not attack.hits_allies and unit is Enemy and attack.attacker is Enemy:
 					continue
 				unit._take_damage(attack.resolve_against(unit))
+			# Attacks that can hurt enemies also hit the remains lying on the tile (even under a unit).
+			var body := remains_at(tile)
+			if body and body.is_destructible() and (attack.attacker is Player or attack.hits_allies):
+				body._take_damage(attack.resolve_against(body))
 
 func _on_enemy_death(enemy: Enemy):
-	grid[enemy.map_position.y][enemy.map_position.x] = null
+	_remove_enemy(enemy)
+	if enemy.leaves_remains:
+		_add_remains(enemy)
+	if not enemy.death_spawn_id.is_empty():
+		# Deferred: the attack that killed it is still resolving and would hit the newcomer too.
+		# It also lets the newcomer sit out the enemies' turn that follows the killing blow.
+		_spawn_from_death.call_deferred(enemy.death_spawn_id, enemy.map_position, enemy.facing, enemy.position)
+
+func _remove_enemy(enemy: Enemy) -> void:
+	if grid[enemy.map_position.y][enemy.map_position.x] == enemy:
+		grid[enemy.map_position.y][enemy.map_position.x] = null
 	enemies.erase(enemy)
 	enemy.queue_free()
+
+# The spawned enemy falls out of the dead one: it starts at its body and slides to a free neighbour tile.
+func _spawn_from_death(id: String, tile: Vector2i, facing: Unit.facing_direction, from_position: Vector2) -> void:
+	var landing := _death_spawn_tile(tile)
+	if landing == NO_TILE:
+		push_warning("No free tile around %s to spawn '%s'" % [tile, id])
+		return
+	var spawned := spawn_enemy(id, landing, facing)
+	if spawned:
+		spawned.position = from_position
+
+# Free neighbour tile farthest from the player, else the dead enemy's own tile, else NO_TILE.
+func _death_spawn_tile(tile: Vector2i) -> Vector2i:
+	var best := NO_TILE
+	for step in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN]:
+		var candidate: Vector2i = tile + step
+		if _is_free_tile(candidate) and (best == NO_TILE or _player_distance(candidate) > _player_distance(best)):
+			best = candidate
+	if best == NO_TILE and _is_free_tile(tile):
+		best = tile
+	return best
+
+func _is_free_tile(tile: Vector2i) -> bool:
+	return _is_in_bounds(tile) and grid[tile.y][tile.x] == null and not astar.is_point_solid(tile)
+
+func _player_distance(tile: Vector2i) -> int:
+	return absi(tile.x - player.map_position.x) + absi(tile.y - player.map_position.y)
 
 func _is_player_there(tiles: Array[Vector2i]) -> bool:
 	for tile in tiles:

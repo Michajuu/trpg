@@ -42,6 +42,9 @@ extends RefCounted
 ##   face_player {}     turn toward the player
 ##   heal {percent}     heal % of max HP
 ##   wait {}            do nothing
+##   possess {turns, steps}   walks to the nearest Remains (body of an enemy with leaves_remains, e.g. a Haunted Armor)
+##     and after standing on it for turns of its own turns (default 2; turns spent attacking don't count, stepping off
+##     resets them) disappears into it, bringing that enemy back with full HP. Can't be done without any Remains.
 ## Every action also takes "animation": name of an animation in the enemy's Sprite (AnimatedSprite2D) to play
 ##   when the action runs; for attack it plays when the hit lands. Attack also takes "windup_animation", held
 ##   while the warning tiles are shown (e.g. a slime opening its mouth). Empty = "idle". A one-shot (non-looping)
@@ -50,7 +53,7 @@ extends RefCounted
 
 const BEHAVIORS_PATH := "res://Battle/AI/%s/%s.json"
 const CONDITIONS: Array[String] = ["hp_below", "hp_above", "player_within", "player_farther_than", "player_behind", "chance"]
-const ACTIONS: Array[String] = ["attack", "charge", "approach", "flee", "wander", "face_player", "heal", "wait"]
+const ACTIONS: Array[String] = ["attack", "charge", "approach", "flee", "wander", "face_player", "heal", "wait", "possess"]
 const NEIGHBOURS: Array[Vector2i] = [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN]
 
 ## Parsed rules per JSON file path, shared by every enemy using it (read-only after loading).
@@ -70,6 +73,8 @@ var _pending_animation: String = ""
 var _pending_is_charge: bool = false
 var _pending_pierce: bool = false
 var _pending_speed: float = 0.0
+# Turns spent possessing the Remains the enemy stands on.
+var _possess_turns: int = 0
 
 ## Builds a behavior from its folder by id (the encounter's "ai"). Returns null (and logs an error) if it doesn't exist.
 static func load_behavior(behavior_id: String) -> AIBehavior:
@@ -134,6 +139,8 @@ func take_turn(enemy: Enemy, astar: AStarGrid2D) -> void:
 		_cooldowns[i] = maxi(_cooldowns[i] - 1, 0)
 	if used >= 0:
 		_cooldowns[used] = rules[used].cooldown
+	if enemy.manager.remains_at(enemy.map_position) == null:
+		_possess_turns = 0
 
 ## Returns the index of the rule that ran, or -1.
 func _act(enemy: Enemy, astar: AStarGrid2D) -> int:
@@ -202,6 +209,8 @@ func _run_action(action: Dictionary, enemy: Enemy, astar: AStarGrid2D) -> bool:
 			return enemy.heal(roundi(enemy.max_hp * float(action.get("percent", 25)) / 100.0)) > 0
 		"wait":
 			return true
+		"possess":
+			return _possess(enemy, astar, maxi(int(action.get("turns", 2)), 1), maxi(int(action.get("steps", 1)), 1))
 	return false
 
 func _attack(action: Dictionary, enemy: Enemy) -> bool:
@@ -416,6 +425,31 @@ func _charge_spots(enemy: Enemy, player_pos: Vector2i, sight: int, avoid_allies:
 			spots.append(tile)
 			tile += step
 	return spots
+
+## Stands on Remains for turns turns, then revives them; otherwise walks steps tiles toward the nearest reachable one.
+func _possess(enemy: Enemy, astar: AStarGrid2D, turns: int, steps: int) -> bool:
+	var manager := enemy.manager
+	var body := manager.remains_at(enemy.map_position)
+	if body:
+		_possess_turns += 1
+		if _possess_turns >= turns:
+			_possess_turns = 0
+			manager.revive_remains(body, enemy)
+		return true
+	var best: Array[Vector2i] = []
+	var blocked := _block_other_enemies(enemy, astar)
+	for other in manager.remains:
+		var path := enemy._try_path_to(astar, other.map_position)
+		if path.size() > 1 and (best.is_empty() or path.size() < best.size()):
+			best = path
+	for tile in blocked:
+		astar.set_point_solid(tile, false)
+	var moved := false
+	for i in range(1, mini(steps + 1, best.size())):
+		if not _step(enemy, best[i]):
+			break
+		moved = true
+	return moved
 
 func _flee(enemy: Enemy, steps: int) -> bool:
 	var player_pos: Vector2i = enemy.manager.player.map_position

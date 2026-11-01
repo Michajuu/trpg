@@ -3,9 +3,10 @@ extends Node2D
 
 enum facing_direction {RIGHT, LEFT}
 
-## z_index of a unit in row 0; each row further down adds 1. Keeps units above the floor and warning tiles (z 0)
-## and below damage numbers (z 10).
+## z_index of a unit in row 0. Keeps units above the floor and warning tiles (z 0) and below damage numbers (z 20).
 const DEPTH_Z_BASE := 1
+## z_index added per row further down. 2, so things lying on the floor of a row (Remains) fit right below its units.
+const DEPTH_Z_PER_ROW := 2
 
 @export var unit_name: String = "Unit"
 @export var max_hp: int = 100
@@ -14,7 +15,7 @@ const DEPTH_Z_BASE := 1
 	set(value):
 		map_position = value
 		# Depth sorting: units in lower rows (closer to the camera) are drawn over the ones behind them.
-		z_index = DEPTH_Z_BASE + value.y
+		z_index = depth_z_index(value.y)
 ## Chance (0.0–1.0) for this unit's attacks to crit (0.025 = 2.5%).
 @export_range(0.0, 1.0) var crit_chance: float = 0.025
 ## Damage multiplier of this unit's critical hits.
@@ -32,6 +33,10 @@ signal _attack_tiles(attack: Attack)
 
 func _ready() -> void:
 	current_hp = max_hp
+
+## z_index of a unit standing in the given grid row.
+static func depth_z_index(row: int) -> int:
+	return DEPTH_Z_BASE + row * DEPTH_Z_PER_ROW
 
 func _take_damage(hit: Hit) -> void:
 	current_hp = max(current_hp - hit.damage, 0)

@@ -23,6 +23,23 @@ var turnsUntilAttack: int = 0
 @export var default_ai: JSON
 ## Data-driven AI made in the editor. Set by Battle from the encounter's "ai", else from default_ai; null = own script.
 var ai: AIBehavior
+
+@export_group("Death")
+## Enemy id (folder in Battle/Entities/Enemies) that falls out next to it when it dies, e.g. "Wisp". Empty = nothing.
+@export var death_spawn_id: String = ""
+## Leaves its body (Remains) on its tile when it dies. Any enemy with the AI action "possess" can revive it.
+@export var leaves_remains: bool = false
+## HP of the body; the player can destroy it so it can't be revived. 0 = indestructible.
+@export var remains_hp: int = 0
+## Look of the body; empty = the first "idle" frame of the Sprite.
+@export var remains_texture: Texture2D
+## Tint of the body, so it reads as lifeless.
+@export var remains_modulate: Color = Color(0.5, 0.5, 0.6, 1.0)
+@export_group("")
+
+## Id (folder name) this enemy was spawned from and the encounter's AI override; set by Battle.spawn_enemy.
+var enemy_id: String
+var ai_id: String
 var _missing_animations: Array[String] = []
 # Set by play_animation_until_arrival: go back to idle once the move animation reaches destination.
 var _idle_on_arrival: bool = false

@@ -6,6 +6,9 @@ var player_spawn: Vector2i
 var player_facing: Unit.facing_direction = Unit.facing_direction.RIGHT
 var enemies: Array[UnitData]
 var obstacles: Array[UnitData]
+## Empty bodies of enemies (Remains) any enemy with the AI action "possess" can bring to life.
+## JSON: "remains": [{"id": "HauntedArmor", "x": 4, "y": 2, "facing": "left", "ai": ""}] (ai = the revived enemy's AI).
+var remains: Array[UnitData]
 
 static func from_dict(dict: Dictionary) -> EncounterData:
 	var obj = EncounterData.new()
@@ -16,5 +19,7 @@ static func from_dict(dict: Dictionary) -> EncounterData:
 		obj.enemies.append(UnitData.from_dict(enemies_dict))
 	for obstacle_dict in dict.get("obstacles", []):
 		obj.obstacles.append(UnitData.from_dict(obstacle_dict))
+	for remains_dict in dict.get("remains", []):
+		obj.remains.append(UnitData.from_dict(remains_dict))
 	
 	return obj
