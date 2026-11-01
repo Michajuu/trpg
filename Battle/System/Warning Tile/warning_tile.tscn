@@ -3,4 +3,5 @@
 [ext_resource type="Texture2D" uid="uid://0fxvpym5q5lq" path="res://Battle/System/Warning Tile/warning.png" id="1_mjhf8"]
 
 [node name="Warning" type="Sprite2D" unique_id=2087142989]
+z_as_relative = false
 texture = ExtResource("1_mjhf8")

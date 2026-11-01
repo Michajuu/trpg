@@ -3,10 +3,18 @@ extends Node2D
 
 enum facing_direction {RIGHT, LEFT}
 
+## z_index of a unit in row 0; each row further down adds 1. Keeps units above the floor and warning tiles (z 0)
+## and below damage numbers (z 10).
+const DEPTH_Z_BASE := 1
+
 @export var unit_name: String = "Unit"
 @export var max_hp: int = 100
 @export var dmg: int = 10
-@export var map_position = Vector2i(0,0)
+@export var map_position = Vector2i(0,0):
+	set(value):
+		map_position = value
+		# Depth sorting: units in lower rows (closer to the camera) are drawn over the ones behind them.
+		z_index = DEPTH_Z_BASE + value.y
 ## Chance (0.0–1.0) for this unit's attacks to crit (0.025 = 2.5%).
 @export_range(0.0, 1.0) var crit_chance: float = 0.025
 ## Damage multiplier of this unit's critical hits.

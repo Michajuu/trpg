@@ -11,6 +11,7 @@ bg_color = Color(1, 0.14117648, 0.1764706, 1)
 [sub_resource type="SpriteFrames" id="SpriteFrames_s1fef"]
 
 [node name="Enemy" type="Node2D" unique_id=889287356]
+z_index = 1
 script = ExtResource("2_l2pob")
 crit_chance = 0.0
 
