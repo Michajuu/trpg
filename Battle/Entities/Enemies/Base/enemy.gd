@@ -35,6 +35,19 @@ var ai: AIBehavior
 @export var remains_texture: Texture2D
 ## Tint of the body, so it reads as lifeless.
 @export var remains_modulate: Color = Color(0.5, 0.5, 0.6, 1.0)
+@export_group("Explosion")
+## Tiles blown up when it dies (any death: killed, by another explosion, or the AI action "self_destruct").
+## A tile pattern preset name like skills use (Battle/Skills/tile_patterns.json), e.g. "explosion". Empty = no explosion.
+## The body stays as a lit Fuse with the tiles shown as warnings, so the player can step away.
+@export var explosion_tiles: String = ""
+## Explosion damage = dmg * this.
+@export var explosion_damage_multiplier: float = 1.0
+## Player actions the player gets to escape before it goes off (counted from the next one after the death).
+@export_range(0, 10) var explosion_delay: int = 1
+## Also hurts enemies (and their remains). A killed enemy with explosion_tiles explodes too: chain reaction.
+@export var explosion_friendly_fire: bool = true
+## Blasts of exploding enemies (Fuses, its own kind included) heal it by their damage instead of hurting it.
+@export var heals_from_explosions: bool = false
 @export_group("")
 
 ## Id (folder name) this enemy was spawned from and the encounter's AI override; set by Battle.spawn_enemy.
@@ -47,10 +60,16 @@ var _idle_on_arrival: bool = false
 var _normal_move_speed: float = -1.0
 # Hits waiting for the move animation, in path order: {"at": Vector2, "hit": Callable}.
 var _contact_hits: Array[Dictionary] = []
+# Parsed explosion_tiles, filled on first use.
+var _explosion_offsets: Array[Vector2i] = []
+# Sprite height above the ground while hopping (play_hop); the Sprite's own position.y is the ground.
+var _sprite_ground_y: float = 0.0
+var _hop: Tween
 
 func _ready() -> void:
 	sprite.play("idle")
 	sprite.flip_h = facing
+	_sprite_ground_y = sprite.position.y
 	current_hp = max_hp
 	if health_bar:
 		health_bar.max_value = max_hp
@@ -106,13 +125,33 @@ func set_facing(new_facing: facing_direction) -> void:
 	facing = new_facing
 	sprite.flip_h = facing
 
-## Heals up to max_hp. Returns how much was actually healed.
+## Heals up to max_hp and shows the amount. Returns how much was actually healed.
 func heal(amount: int) -> int:
 	var healed := clampi(amount, 0, max_hp - current_hp)
 	current_hp += healed
 	if health_bar:
 		health_bar.value = current_hp
+	if healed > 0:
+		_spawn_number(healed, false, true)
 	return healed
+
+## Arcs the Sprite up by height pixels and back down while the enemy moves to destination (a leap, or being thrown).
+## Call after setting destination and move speed: the arc lasts as long as the move.
+func play_hop(height: float) -> void:
+	_stop_hop()
+	var gap := (destination - position).abs()
+	var time := maxf(gap.x, gap.y) / maxf(move_speed, 1.0)
+	if time <= 0.0 or height <= 0.0:
+		return
+	_hop = create_tween()
+	_hop.tween_property(sprite, "position:y", _sprite_ground_y - height, time / 2) 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_hop.tween_property(sprite, "position:y", _sprite_ground_y, time / 2) 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+
+func _stop_hop() -> void:
+	if _hop:
+		_hop.kill()
+		_hop = null
+		sprite.position.y = _sprite_ground_y
 
 func _process(delta: float) -> void:
 	if position != destination:
@@ -124,6 +163,7 @@ func _process(delta: float) -> void:
 ## Ends the current move animation at once and lands its queued hits.
 ## Battle calls it before the player acts, so an unfinished charge can't be dodged by moving mid-run.
 func finish_animations() -> void:
+	_stop_hop()
 	position = destination
 	_run_contact_hits()
 	_on_arrived()
@@ -143,21 +183,43 @@ func _on_arrived() -> void:
 		play_animation("")
 
 func _take_damage(hit: Hit) -> void:
+	if hit.is_explosion and heals_from_explosions:
+		heal(hit.damage)
+		return
 	current_hp = max(current_hp - hit.damage, 0)
 	if health_bar:
 		health_bar.value = current_hp
-	_spawn_damage_number(hit)
+	_spawn_number(hit.damage, hit.is_critical)
 	if !current_hp:
-		enemy_died.emit(self)
-		queue_free()
+		die()
+
+## Removes the enemy from the battle; Battle handles what it leaves behind (remains, death spawn, explosion).
+func die() -> void:
+	if is_queued_for_deletion():
+		return
+	current_hp = 0
+	if health_bar:
+		health_bar.value = 0
+	enemy_died.emit(self)
+	queue_free()
+
+## True if the enemy blows up when it dies (explosion_tiles set).
+func explodes() -> bool:
+	return not get_explosion_offsets().is_empty()
+
+## explosion_tiles as offsets (see TilePattern); empty = no explosion.
+func get_explosion_offsets() -> Array[Vector2i]:
+	if _explosion_offsets.is_empty() and not explosion_tiles.is_empty():
+		_explosion_offsets = TilePattern.parse(explosion_tiles)
+	return _explosion_offsets
 
 # The number is added to the parent (Battle) so it doesn't disappear along with a killed enemy.
-func _spawn_damage_number(hit: Hit) -> void:
+func _spawn_number(amount: int, is_critical: bool, is_heal: bool = false) -> void:
 	if !damage_number_scene or !get_parent():
 		return
 	var number : DamageNumber = damage_number_scene.instantiate()
 	get_parent().add_child(number)
-	number.play(hit.damage, _damage_number_direction(), global_position + damage_number_offset, hit.is_critical)
+	number.play(amount, _damage_number_direction(), global_position + damage_number_offset, is_critical, is_heal)
 
 # The number flies away from the player, like knockback from the hit.
 func _damage_number_direction() -> int:

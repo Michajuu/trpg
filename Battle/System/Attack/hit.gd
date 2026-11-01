@@ -7,6 +7,7 @@ extends RefCounted
 var damage: int
 var is_critical: bool = false
 var is_backstab: bool = false
+var is_explosion: bool = false
 
 func _init(p_damage: int) -> void:
 	damage = p_damage

@@ -1,0 +1,49 @@
+{
+	"id": "Warpig",
+	"name": "Warpig",
+	"description": "Miniboss. Keeps to the side wall farther from the player, leaping 3 tiles at a time over anything in the way and hitting the tiles left, right, above and below where it lands. Throws Bomboars next to the player; once it drops to 50% HP it throws 3 at once, one time only. Bomboar blasts heal it.",
+	"rules": [
+		{
+			"conditions": [],
+			"action": {
+				"type": "leap",
+				"toward": "far_wall",
+				"distance": 3,
+				"tiles": "cross",
+				"damage_multiplier": 1,
+				"windup": 1,
+				"friendly_fire": true
+			},
+			"cooldown": 1
+		},
+		{
+			"conditions": [{"type": "hp_below", "percent": 51}],
+			"action": {
+				"type": "throw",
+				"enemy": "Bomboar",
+				"count": 3,
+				"distance": 2
+			},
+			"cooldown": 0,
+			"max_uses": 1
+		},
+		{
+			"conditions": [],
+			"action": {
+				"type": "throw",
+				"enemy": "Bomboar",
+				"count": 1,
+				"distance": 2,
+				"max_alive": 3
+			},
+			"cooldown": 2
+		},
+		{
+			"conditions": [],
+			"action": {
+				"type": "face_player"
+			},
+			"cooldown": 0
+		}
+	]
+}

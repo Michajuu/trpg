@@ -1,0 +1,23 @@
+{
+	"id": "Bomboar",
+	"name": "Bomboar",
+	"description": "Runs up to the player and blows itself up once the player is in its blast (the 3x3 square around it). The blast goes off a turn later, so the player can step away. It also explodes a turn after being killed, which can chain into other Bomboars.",
+	"rules": [
+		{
+			"conditions": [],
+			"action": {
+				"type": "self_destruct",
+				"needs_target": true
+			},
+			"cooldown": 0
+		},
+		{
+			"conditions": [],
+			"action": {
+				"type": "approach",
+				"steps": 1
+			},
+			"cooldown": 0
+		}
+	]
+}

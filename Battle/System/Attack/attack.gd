@@ -22,6 +22,8 @@ var crit_chance: float
 var crit_multiplier: float
 ## False = an enemy's attack doesn't hurt other enemies (AI attacks without friendly_fire).
 var hits_allies: bool = true
+## True for blasts of exploding enemies (Fuse); some enemies heal from them (Enemy.heals_from_explosions).
+var is_explosion: bool = false
 
 func _init(p_attacker: Unit, p_tiles: Array[Vector2i], p_damage: int) -> void:
 	attacker = p_attacker
@@ -43,4 +45,5 @@ func resolve_against(target: Unit) -> Hit:
 	var hit := Hit.new(roundi(damage * multiplier))
 	hit.is_backstab = is_backstab
 	hit.is_critical = is_critical
+	hit.is_explosion = is_explosion
 	return hit

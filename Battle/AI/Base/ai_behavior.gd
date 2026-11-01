@@ -45,15 +45,32 @@ extends RefCounted
 ##   possess {turns, steps}   walks to the nearest Remains (body of an enemy with leaves_remains, e.g. a Haunted Armor)
 ##     and after standing on it for turns of its own turns (default 2; turns spent attacking don't count, stepping off
 ##     resets them) disappears into it, bringing that enemy back with full HP. Can't be done without any Remains.
+##   self_destruct {needs_target}   the enemy dies on the spot, leaving a lit Fuse that blows up its explosion tiles
+##     (Enemy export group "Explosion") after explosion_delay turns. Needs explosion_tiles set on the enemy.
+##     needs_target (default true): only when the player is within those tiles. approach walks to such a tile.
+##   throw {enemy, count, distance, max_alive, speed, height}   throws count new enemies of id enemy (folder in
+##     Battle/Entities/Enemies, e.g. "Bomboar") onto random free tiles at most distance tiles from the player
+##     (default 2, never the player's own tile). They fly from the thrower in an arc (speed in pixels per second,
+##     default 400; height in pixels, default 24) and act from the next turn. max_alive (default 0 = no limit):
+##     never more than that many enemies of that id alive at once; count is cut down to fit. Fails with no free tile.
+##   leap {distance, toward, tiles, damage_multiplier, windup, friendly_fire, speed, height}   jumps along its row
+##     onto the farthest free tile up to distance tiles away (default 3), over obstacles and units, and on landing
+##     hits tiles around itself (default "cross": left, right, up, down). toward: "far_wall" (default; the side edge
+##     of the map farther from the player, fails once it stands there), "player" or "forward". windup (default 1):
+##     turns the landing tile and the hit tiles are shown first; if the landing tile gets taken meanwhile, it lands
+##     short of it. friendly_fire (default false) also hurts enemies. speed/height: like throw (default 300 / 24).
+##     Takes "windup_animation" like attack; "animation" plays in the air.
 ## Every action also takes "animation": name of an animation in the enemy's Sprite (AnimatedSprite2D) to play
 ##   when the action runs; for attack it plays when the hit lands. Attack also takes "windup_animation", held
 ##   while the warning tiles are shown (e.g. a slime opening its mouth). Empty = "idle". A one-shot (non-looping)
 ##   animation goes back to "idle" when it ends; a missing one logs a warning and plays "idle".
 ## cooldown (per rule): after the rule runs it is skipped for that many turns.
+## max_uses (per rule, default 0 = no limit): the rule runs at most that many times per enemy, e.g. 1 for a one-time
+##   phase move at 50% HP. Counted per enemy, so a revived or newly spawned one starts again.
 
 const BEHAVIORS_PATH := "res://Battle/AI/%s/%s.json"
 const CONDITIONS: Array[String] = ["hp_below", "hp_above", "player_within", "player_farther_than", "player_behind", "chance"]
-const ACTIONS: Array[String] = ["attack", "charge", "approach", "flee", "wander", "face_player", "heal", "wait", "possess"]
+const ACTIONS: Array[String] = ["attack", "charge", "approach", "flee", "wander", "face_player", "heal", "wait", "possess", "self_destruct", "throw", "leap"]
 const NEIGHBOURS: Array[Vector2i] = [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN]
 
 ## Parsed rules per JSON file path, shared by every enemy using it (read-only after loading).
@@ -65,14 +82,20 @@ var rules: Array[Dictionary] = []
 
 # Per-enemy state: every enemy gets its own AIBehavior instance.
 var _cooldowns: Array[int] = []
+# Times each rule has run (for max_uses).
+var _uses: Array[int] = []
 var _pending_tiles: Array[Vector2i] = []
 var _pending_damage: int = 0
 var _pending_friendly_fire: bool = false
 var _pending_turns: int = 0
 var _pending_animation: String = ""
-var _pending_is_charge: bool = false
+# What the telegraphed action is: "attack", "charge" or "leap".
+var _pending_kind: String = ""
 var _pending_pierce: bool = false
 var _pending_speed: float = 0.0
+var _pending_action: Dictionary = {}
+var _pending_landing: Vector2i
+var _pending_direction: int = 0
 # Turns spent possessing the Remains the enemy stands on.
 var _possess_turns: int = 0
 
@@ -105,6 +128,7 @@ static func from_json(json: JSON) -> AIBehavior:
 	behavior.rules = data.rules
 	for i in behavior.rules.size():
 		behavior._cooldowns.append(0)
+		behavior._uses.append(0)
 	return behavior
 
 ## Checks the rules once and drops broken ones, so mistakes are reported on load instead of every turn.
@@ -120,6 +144,8 @@ static func _parse(behavior_id: String, dict: Dictionary) -> Dictionary:
 			continue
 		if action.type == "attack":
 			action.offsets = TilePattern.parse(action.get("tiles", "in_front"))
+		elif action.type == "leap":
+			action.offsets = TilePattern.parse(action.get("tiles", "cross"))
 		var conditions: Array[Dictionary] = []
 		var valid := true
 		for condition in raw.get("conditions", []):
@@ -129,7 +155,8 @@ static func _parse(behavior_id: String, dict: Dictionary) -> Dictionary:
 				break
 			conditions.append(condition)
 		if valid:
-			rules.append({"conditions": conditions, "action": action, "cooldown": maxi(int(raw.get("cooldown", 0)), 0)})
+			rules.append({"conditions": conditions, "action": action, "cooldown": maxi(int(raw.get("cooldown", 0)), 0),
+				"max_uses": maxi(int(raw.get("max_uses", 0)), 0)})
 	return {"name": str(dict.get("name", behavior_id)), "rules": rules}
 
 ## One enemy turn. Called by Enemy.take_turn every time the player acts.
@@ -139,6 +166,7 @@ func take_turn(enemy: Enemy, astar: AStarGrid2D) -> void:
 		_cooldowns[i] = maxi(_cooldowns[i] - 1, 0)
 	if used >= 0:
 		_cooldowns[used] = rules[used].cooldown
+		_uses[used] += 1
 	if enemy.manager.remains_at(enemy.map_position) == null:
 		_possess_turns = 0
 
@@ -148,20 +176,25 @@ func _act(enemy: Enemy, astar: AStarGrid2D) -> int:
 	if _pending_turns > 0:
 		_pending_turns -= 1
 		if _pending_turns == 0:
-			if _pending_is_charge:
-				_release_charge(enemy)
-			else:
-				_release_attack(enemy)
+			match _pending_kind:
+				"charge":
+					_release_charge(enemy)
+				"leap":
+					_release_leap(enemy)
+				_:
+					_release_attack(enemy)
 		return -1
 	for i in rules.size():
 		if _cooldowns[i] > 0:
 			continue
 		var rule: Dictionary = rules[i]
+		if rule.max_uses > 0 and _uses[i] >= rule.max_uses:
+			continue
 		if not _conditions_hold(rule.conditions, enemy):
 			continue
 		if _run_action(rule.action, enemy, astar):
-			# Attacks and charges pick their own animation (windup or hit).
-			if rule.action.type not in ["attack", "charge"]:
+			# Attacks, charges and leaps pick their own animation (windup or hit).
+			if rule.action.type not in ["attack", "charge", "leap"]:
 				enemy.play_animation(str(rule.action.get("animation", "")))
 			return i
 	enemy.play_animation("")
@@ -211,6 +244,162 @@ func _run_action(action: Dictionary, enemy: Enemy, astar: AStarGrid2D) -> bool:
 			return true
 		"possess":
 			return _possess(enemy, astar, maxi(int(action.get("turns", 2)), 1), maxi(int(action.get("steps", 1)), 1))
+		"self_destruct":
+			return _self_destruct(action, enemy)
+		"throw":
+			return _throw(action, enemy)
+		"leap":
+			return _leap(action, enemy)
+	return false
+
+func _throw(action: Dictionary, enemy: Enemy) -> bool:
+	var manager := enemy.manager
+	var thrown_id := str(action.get("enemy", ""))
+	if thrown_id.is_empty():
+		push_warning("%s: throw needs \"enemy\" (an enemy id, e.g. \"Bomboar\")" % enemy.name)
+		return false
+	var count := maxi(int(action.get("count", 1)), 1)
+	var max_alive := maxi(int(action.get("max_alive", 0)), 0)
+	if max_alive > 0:
+		count = mini(count, max_alive - _alive_count(manager, thrown_id))
+		if count <= 0:
+			return false
+	var player_tile := _player_tile(enemy)
+	var reach := maxi(int(action.get("distance", 2)), 1)
+	var options: Array[Vector2i] = []
+	for y in manager.map_size.y + 1:
+		for x in manager.map_size.x + 1:
+			var tile := Vector2i(x, y)
+			var gap := _distance(tile, player_tile)
+			if gap >= 1 and gap <= reach and _is_free(enemy, tile):
+				options.append(tile)
+	options.shuffle()
+	var speed := maxf(float(action.get("speed", 400)), 1.0)
+	var height := float(action.get("height", 24))
+	var thrown_any := false
+	for tile: Vector2i in options.slice(0, count):
+		var facing := Unit.facing_direction.LEFT if player_tile.x < tile.x else Unit.facing_direction.RIGHT
+		var thrown := manager.spawn_enemy(thrown_id, tile, facing)
+		if thrown == null:
+			break
+		thrown.position = enemy.position
+		thrown.set_move_speed_until_arrival(speed)
+		thrown.play_hop(height)
+		thrown_any = true
+	return thrown_any
+
+func _alive_count(manager: Battle_Manager, enemy_id: String) -> int:
+	var alive := 0
+	for other in manager.enemies:
+		if is_instance_valid(other) and not other.is_queued_for_deletion() and other.enemy_id == enemy_id:
+			alive += 1
+	return alive
+
+## Picks the landing tile now; with a windup the jump itself happens when it ends (_release_leap).
+func _leap(action: Dictionary, enemy: Enemy) -> bool:
+	var direction := _leap_direction(action, enemy)
+	if direction == 0:
+		return false
+	var landing := _leap_landing(enemy, direction, maxi(int(action.get("distance", 3)), 1))
+	if landing == Battle_Manager.NO_TILE:
+		return false
+	enemy.set_facing(Unit.facing_direction.LEFT if direction < 0 else Unit.facing_direction.RIGHT)
+	var windup := maxi(int(action.get("windup", 1)), 0)
+	if windup == 0:
+		_jump(action, enemy, landing)
+		return true
+	enemy.play_animation(str(action.get("windup_animation", "")))
+	_pending_kind = "leap"
+	_pending_action = action
+	_pending_landing = landing
+	_pending_direction = direction
+	_pending_turns = windup
+	var warned: Array[Vector2i] = [landing]
+	for tile in TilePattern.to_tiles(action.offsets, landing, enemy.facing):
+		if enemy.manager._is_in_bounds(tile) and tile not in warned:
+			warned.append(tile)
+	enemy._place_warning_tile(warned)
+	return true
+
+func _release_leap(enemy: Enemy) -> void:
+	enemy._remove_warning_tiles()
+	enemy.about_to_attack = false
+	var landing := _pending_landing
+	if not _is_free(enemy, landing):
+		landing = _leap_landing(enemy, _pending_direction, _distance(enemy.map_position, landing))
+	if landing == Battle_Manager.NO_TILE:
+		enemy.play_animation("")
+		return
+	_jump(_pending_action, enemy, landing)
+
+## -1 = left, 1 = right, 0 = no leap.
+func _leap_direction(action: Dictionary, enemy: Enemy) -> int:
+	var x: int = enemy.map_position.x
+	var player_x := _player_tile(enemy).x
+	match str(action.get("toward", "far_wall")):
+		"far_wall":
+			var right_wall: int = enemy.manager.map_size.x
+			var wall := right_wall if player_x * 2 < right_wall else 0
+			# Player in the middle column: both walls are as far, keep to the nearer one.
+			if player_x * 2 == right_wall:
+				wall = right_wall if x * 2 >= right_wall else 0
+			return signi(wall - x)
+		"player":
+			return signi(player_x - x)
+		"forward":
+			return -1 if enemy.facing == Unit.facing_direction.LEFT else 1
+	push_warning("%s: unknown leap toward '%s' (far_wall, player, forward)" % [enemy.name, action.get("toward")])
+	return 0
+
+## Farthest free tile in the row, up to distance tiles away in direction; obstacles and units in between don't matter.
+func _leap_landing(enemy: Enemy, direction: int, distance: int) -> Vector2i:
+	for d in range(distance, 0, -1):
+		var tile: Vector2i = enemy.map_position + Vector2i(direction * d, 0)
+		if _is_free(enemy, tile):
+			return tile
+	return Battle_Manager.NO_TILE
+
+## Takes the tile at once (nothing can step onto it mid-air); the landing hit comes when the sprite gets there.
+func _jump(action: Dictionary, enemy: Enemy, landing: Vector2i) -> void:
+	var manager := enemy.manager
+	var damage := roundi(enemy.dmg * float(action.get("damage_multiplier", 1.0)))
+	var friendly_fire: bool = action.get("friendly_fire", false)
+	var tiles := TilePattern.to_tiles(action.offsets, landing, enemy.facing)
+	enemy._enemy_updated_position.emit(enemy, enemy.map_position, landing)
+	enemy.map_position = landing
+	enemy.destination = manager.map_position_to_position(landing)
+	enemy.play_animation_until_arrival(str(action.get("animation", "")))
+	enemy.set_move_speed_until_arrival(maxf(float(action.get("speed", 300)), 1.0))
+	enemy.play_hop(float(action.get("height", 24)))
+	enemy.add_contact_hit(enemy.destination, func() -> void:
+		_emit_attack(enemy, tiles, damage, friendly_fire, landing))
+
+# Reads the grid instead of player.map_position: when the player walks, enemies act before it is updated.
+func _player_tile(enemy: Enemy) -> Vector2i:
+	var manager := enemy.manager
+	for y in manager.grid.size():
+		for x in manager.grid[y].size():
+			if manager.grid[y][x] is Player:
+				return Vector2i(x, y)
+	return manager.player.map_position
+
+## Kills the enemy; Battle lights its fuse (Battle.light_fuse), which does the damage later.
+func _self_destruct(action: Dictionary, enemy: Enemy) -> bool:
+	if not enemy.explodes():
+		push_warning("%s: self_destruct needs explosion_tiles set on the enemy" % enemy.name)
+		return false
+	if action.get("needs_target", true):
+		var tiles := TilePattern.to_tiles(enemy.get_explosion_offsets(), enemy.map_position, enemy.facing)
+		if not _player_on(enemy, tiles):
+			return false
+	enemy.die()
+	return true
+
+# Reads the grid instead of player.map_position: when the player walks, enemies act before it is updated.
+func _player_on(enemy: Enemy, tiles: Array[Vector2i]) -> bool:
+	for tile in tiles:
+		if enemy.manager._is_in_bounds(tile) and enemy.manager.grid[tile.y][tile.x] is Player:
+			return true
 	return false
 
 func _attack(action: Dictionary, enemy: Enemy) -> bool:
@@ -242,7 +431,7 @@ func _attack(action: Dictionary, enemy: Enemy) -> bool:
 	_pending_damage = damage
 	_pending_friendly_fire = friendly_fire
 	_pending_turns = windup
-	_pending_is_charge = false
+	_pending_kind = "attack"
 	var visible: Array[Vector2i] = []
 	for tile in tiles:
 		if enemy.manager._is_in_bounds(tile):
@@ -283,7 +472,7 @@ func _charge(action: Dictionary, enemy: Enemy) -> bool:
 	_pending_damage = damage
 	_pending_friendly_fire = friendly_fire
 	_pending_turns = windup
-	_pending_is_charge = true
+	_pending_kind = "charge"
 	_pending_pierce = pierce
 	_pending_speed = speed
 	enemy._place_warning_tile(_charge_lane(enemy, enemy.facing))
@@ -385,7 +574,7 @@ func _block_other_enemies(enemy: Enemy, astar: AStarGrid2D) -> Array[Vector2i]:
 			blocked.append(other.map_position)
 	return blocked
 
-## Free tiles from which some attack of this behavior (in either facing) would hit the player,
+## Free tiles from which some attack or self_destruct of this behavior (in either facing) would hit the player,
 ## plus tiles in the player's row from which a charge would see it.
 ## Without attacks or charges: the four tiles around the player.
 func _attack_spots(enemy: Enemy, player_pos: Vector2i) -> Array[Vector2i]:
@@ -394,6 +583,8 @@ func _attack_spots(enemy: Enemy, player_pos: Vector2i) -> Array[Vector2i]:
 	for rule in rules:
 		if rule.action.type == "attack":
 			offsets.append_array(rule.action.offsets)
+		elif rule.action.type == "self_destruct":
+			offsets.append_array(enemy.get_explosion_offsets())
 		elif rule.action.type == "charge":
 			var sight := maxi(int(rule.action.get("sight", 0)), 0)
 			candidates.append_array(_charge_spots(enemy, player_pos, sight, rule.action.get("avoid_allies", true)))

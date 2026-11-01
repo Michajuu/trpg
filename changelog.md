@@ -26,11 +26,40 @@ into that day's version; the next day of work starts a new version. When startin
 - This changelog.
 - Turning toward an enemy behind you: moving into an enemy you have your back to turns the player around
   instead. It costs as much as a move: enemies take their turn and Tempo decay is reset.
+- Bomboar enemy (`Battle/AI/Bomboar/bomboar.json`): runs up to the player and blows itself up once the player is in
+  its blast (the 3x3 square around it, own tile included). Killed in any way, it explodes too, so explosions chain.
+  The blast always goes off one player action later, with its tiles shown as warnings, so the player can step away.
+- Enemy export group "Explosion": `explosion_tiles` (tile pattern preset), `explosion_damage_multiplier`,
+  `explosion_delay`, `explosion_friendly_fire`. Any enemy with `explosion_tiles` explodes on death.
+- Fuse (`Battle/Entities/Fuse/fuse.gd`): the blinking body of an exploding enemy, counting down to its blast.
+  Doesn't block movement and can't be hurt. `Battle.light_fuse()`, `Battle.turn` (enemies' turns so far).
+- AI action `self_destruct {needs_target}`: the enemy dies on the spot and lights its fuse; `approach` walks to a tile
+  from which the blast would reach the player.
+- `Enemy.die()`: kills the enemy without damage (used by `self_destruct`).
+- Tile pattern preset `explosion` (3x3 square including the user's own tile).
+- Test encounter `bomboar_test.json`.
+- Warpig miniboss (`Battle/AI/Warpig/warpig.json`): keeps to the side wall farther from the player, leaping 3 tiles
+  at a time over anything in the way; the landing hits the tiles left, right, above and below it (shown a turn
+  ahead). Throws a Bomboar next to the player (max 3 alive); once it drops to 50% HP it throws 3 at once, one time
+  only (rule `max_uses: 1`).
+  Bomboar blasts heal it instead of hurting it.
+- AI action `throw {enemy, count, distance, max_alive, speed, height}`: throws new enemies of any id onto free tiles
+  near the player, in an arc from the thrower.
+- AI action `leap {distance, toward, tiles, damage_multiplier, windup, friendly_fire, speed, height}`: jumps along its
+  row over obstacles and units (`toward`: `far_wall`, `player` or `forward`) and hits tiles around the landing.
+- Enemy export `heals_from_explosions` (group "Explosion"): Fuse blasts heal it by their damage.
+  `Attack.is_explosion` / `Hit.is_explosion` mark blast damage.
+- `Enemy.play_hop()`: arcs the sprite up and down during a move (leaps, thrown enemies).
+- AI rule field `max_uses` (default 0 = no limit): the rule runs at most that many times per enemy.
+- Heal numbers: `DamageNumber.play()` takes `is_heal` (green, `+` prefix; exports `heal_color`, `heal_prefix`).
+- Tile pattern preset `cross` (left, right, up and down neighbours).
+- Test encounter `warpig_test.json` (now the one `Battle.tscn` loads).
 
 ### Changed
 - Units are depth-sorted by grid row (`z_index` set from `map_position`), so units closer to the camera draw over
   the ones behind them.
 - Damage numbers moved to `z_index` 20 so they stay above all units.
+- `Enemy.heal()` (AI action `heal` too) shows the healed amount as a green number.
 
 ### Fixed
 - Warning tiles drew over enemies; they now lie on the floor below every unit.

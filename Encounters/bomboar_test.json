@@ -1,0 +1,10 @@
+{
+	"player_spawn": {"x": 1, "y": 2, "facing": "right"},
+	"enemies": [
+		{"id": "Bomboar", "x": 4, "y": 2, "facing": "left"},
+		{"id": "Bomboar", "x": 5, "y": 2, "facing": "left"},
+		{"id": "Bomboar", "x": 7, "y": 1, "facing": "left"},
+		{"id": "HauntedArmor", "x": 6, "y": 3, "facing": "left"}
+	],
+	"obstacles": []
+}

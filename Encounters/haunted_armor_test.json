@@ -1,11 +1,30 @@
 {
-	"player_spawn": {"x": 1, "y": 2, "facing": "right"},
+	"player_spawn": {
+		"x": 1.0,
+		"y": 2.0,
+		"facing": "right"
+	},
 	"enemies": [
-		{"id": "HauntedArmor", "x": 3, "y": 2, "facing": "left"},
-		{"id": "Wisp", "x": 7, "y": 0, "facing": "left"}
+		{
+			"id": "HauntedArmor",
+			"x": 3.0,
+			"y": 2.0,
+			"facing": "left"
+		},
+		{
+			"id": "Wisp",
+			"x": 7.0,
+			"y": 0.0,
+			"facing": "left"
+		}
 	],
 	"remains": [
-		{"id": "HauntedArmor", "x": 6, "y": 0, "facing": "left"}
+		{
+			"id": "HauntedArmor",
+			"x": 6.0,
+			"y": 0.0,
+			"facing": "left"
+		}
 	],
 	"obstacles": []
 }

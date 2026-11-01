@@ -1,0 +1,40 @@
+[gd_scene format=3 uid="uid://bup88ngjg5815"]
+
+[ext_resource type="PackedScene" uid="uid://dmi7aprfeipx8" path="res://Battle/Entities/Enemies/Base/Enemy.tscn" id="1_r8g5b"]
+[ext_resource type="JSON" path="res://Battle/AI/Warpig/warpig.json" id="2_warpig"]
+[ext_resource type="Texture2D" uid="uid://cw4fodycep03t" path="res://Battle/Entities/Enemies/Warpig/Warpig.png" id="4_l71iw"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wjxvx"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_warpig"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("4_l71iw")
+}],
+"loop": 1,
+"name": &"idle",
+"speed": 5.0
+}]
+
+[node name="Warpig" unique_id=2104467743 node_paths=PackedStringArray("health_bar") instance=ExtResource("1_r8g5b")]
+health_bar = NodePath("HealthBar")
+default_ai = ExtResource("2_warpig")
+heals_from_explosions = true
+unit_name = "Warpig"
+max_hp = 120
+dmg = 15
+
+[node name="HealthBar" parent="." index="0" unique_id=816827700]
+z_index = 1
+offset_left = -24.0
+offset_top = -30.0
+offset_right = 24.0
+offset_bottom = -25.0
+theme_override_styles/background = SubResource("StyleBoxFlat_wjxvx")
+
+[node name="Sprite" parent="." index="1" unique_id=584000944]
+scale = Vector2(0.25, 0.25)
+sprite_frames = SubResource("SpriteFrames_warpig")
+animation = &"idle"
+flip_h = true

@@ -30,6 +30,11 @@ var astar = AStarGrid2D.new()
 var enemies : Array[Enemy]
 ## Bodies of dead enemies that can be revived (Enemy.leaves_remains). Not in grid: units can stand on them.
 var remains : Array[Remains]
+## Bodies of exploding enemies waiting to go off (Enemy.explosion_tiles). Not in grid either.
+var fuses : Array[Fuse]
+## Enemies' turns started so far; fuses count their delay in these.
+var turn: int = 0
+var _enemy_turn_running: bool = false
 
 const NO_TILE := Vector2i(-1, -1)
 
@@ -171,10 +176,18 @@ func _process(_delta: float) -> void:
 		get_tree().quit()
 
 func _move_enemies() -> void:
+	turn += 1
+	_enemy_turn_running = true
+	# Fuses go off first, like telegraphed attacks landing. Copy: a blast can light new fuses (chain reaction);
+	# those wait for the next turn.
+	for fuse : Fuse in fuses.duplicate():
+		if is_instance_valid(fuse) and not fuse.is_queued_for_deletion():
+			fuse.tick(turn)
 	# Copy: an enemy can die during the loop (e.g. friendly fire), which erases it from enemies.
 	for enemy : Enemy in enemies.duplicate():
 		if is_instance_valid(enemy) and not enemy.is_queued_for_deletion():
 			enemy.take_turn(astar, player.map_position)
+	_enemy_turn_running = false
 
 ## Snaps every enemy to the end of its move, landing queued hits (e.g. a charge) before the player's
 ## next action changes the grid. The player calls it at the start of every action.
@@ -212,10 +225,25 @@ func _on_enemy_death(enemy: Enemy):
 	_remove_enemy(enemy)
 	if enemy.leaves_remains:
 		_add_remains(enemy)
+	if enemy.explodes():
+		light_fuse(enemy)
 	if not enemy.death_spawn_id.is_empty():
 		# Deferred: the attack that killed it is still resolving and would hit the newcomer too.
 		# It also lets the newcomer sit out the enemies' turn that follows the killing blow.
 		_spawn_from_death.call_deferred(enemy.death_spawn_id, enemy.map_position, enemy.facing, enemy.position)
+
+## Leaves a lit Fuse on the enemy's tile; it explodes after the player has taken explosion_delay more actions.
+## Lit during the player's action, the enemies' turn that follows that action doesn't count yet.
+func light_fuse(enemy: Enemy) -> Fuse:
+	var explode_turn := turn + enemy.explosion_delay + (0 if _enemy_turn_running else 1)
+	var fuse := Fuse.from_enemy(enemy, explode_turn)
+	fuse.position = map_position_to_position(fuse.map_position)
+	fuse.manager = self
+	fuse._attack_tiles.connect(_on_attack_tiles)
+	fuse.exploded.connect(func(f: Fuse) -> void: fuses.erase(f))
+	fuses.append(fuse)
+	add_child(fuse)
+	return fuse
 
 func _remove_enemy(enemy: Enemy) -> void:
 	if grid[enemy.map_position.y][enemy.map_position.x] == enemy:

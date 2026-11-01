@@ -16,6 +16,10 @@ extends Node2D
 @export var critical_color: Color = Color(1.0, 0.2, 0.2)
 ## Appended to a critical hit's number.
 @export var critical_suffix: String = "!"
+## Text color of a heal's number.
+@export var heal_color: Color = Color(0.3, 1.0, 0.4)
+## Put in front of a heal's number.
+@export var heal_prefix: String = "+"
 
 @onready var label: Label = $Label
 
@@ -29,10 +33,13 @@ var _offset_y: float = 0.0:
 		_offset_y = value
 		_apply_offset()
 
-## Call after add_child. direction: -1 = left, 1 = right.
-func play(amount: int, direction: int, at_global_position: Vector2, is_critical: bool = false) -> void:
+## Call after add_child. direction: -1 = left, 1 = right. is_heal: shows a heal (heal_prefix, heal_color).
+func play(amount: int, direction: int, at_global_position: Vector2, is_critical: bool = false, is_heal: bool = false) -> void:
 	label.text = str(amount)
-	if is_critical:
+	if is_heal:
+		label.text = heal_prefix + label.text
+		label.add_theme_color_override("font_color", heal_color)
+	elif is_critical:
 		label.text += critical_suffix
 		label.add_theme_color_override("font_color", critical_color)
 	global_position = at_global_position.round()

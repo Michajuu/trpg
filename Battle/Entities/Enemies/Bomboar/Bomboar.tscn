@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://dwbdmlqt7jgu1"]
+
+[ext_resource type="PackedScene" uid="uid://dmi7aprfeipx8" path="res://Battle/Entities/Enemies/Base/Enemy.tscn" id="1_2klwd"]
+[ext_resource type="JSON" path="res://Battle/AI/Bomboar/bomboar.json" id="2_1bk5k"]
+[ext_resource type="Texture2D" uid="uid://bxrxgvyns8cxy" path="res://Battle/Entities/Enemies/Bomboar/boomboar.png" id="4_dqgk5"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wjxvx"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_bomboar"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("4_dqgk5")
+}],
+"loop": 1,
+"name": &"idle",
+"speed": 5.0
+}]
+
+[node name="Bomboar" unique_id=2104467743 node_paths=PackedStringArray("health_bar") instance=ExtResource("1_2klwd")]
+health_bar = NodePath("HealthBar")
+default_ai = ExtResource("2_1bk5k")
+explosion_tiles = "explosion"
+unit_name = "Bomboar"
+max_hp = 20
+dmg = 20
+
+[node name="HealthBar" parent="." index="0" unique_id=816827700]
+z_index = 1
+offset_top = 10.0
+offset_bottom = 15.0
+theme_override_styles/background = SubResource("StyleBoxFlat_wjxvx")
+
+[node name="Sprite" parent="." index="1" unique_id=584000944]
+position = Vector2(0, 16)
+scale = Vector2(0.25, 0.25)
+sprite_frames = SubResource("SpriteFrames_bomboar")
+animation = &"idle"
+flip_h = true
