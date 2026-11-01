@@ -21,6 +21,7 @@ animations = [{
 health_bar = NodePath("HealthBar")
 default_ai = ExtResource("2_warpig")
 heals_from_explosions = true
+is_boss = true
 unit_name = "Warpig"
 max_hp = 120
 dmg = 15

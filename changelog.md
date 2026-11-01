@@ -14,6 +14,8 @@ into that day's version; the next day of work starts a new version. When startin
 - New miniboss: Warpig. It throws Bomboars at you and is healed by their explosions.
 - You can now turn around to face an enemy behind you.
 - Defeated enemies and destroyed armors now crumble into pixels.
+- Boss health bar at the top of the screen during miniboss fights. Marks show at what HP the boss
+  starts using a new attack, and flash when it does.
 - Game version shown in the bottom-right corner.
 - Changelog.
 

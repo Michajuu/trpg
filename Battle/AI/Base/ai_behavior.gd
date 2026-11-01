@@ -76,6 +76,9 @@ const NEIGHBOURS: Array[Vector2i] = [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP,
 ## Parsed rules per JSON file path, shared by every enemy using it (read-only after loading).
 static var _cache: Dictionary = {}
 
+## A rule ran this turn (index in rules). The boss bar uses it to show when a phase move fires.
+signal rule_used(rule: int)
+
 var id: String
 var display_name: String
 var rules: Array[Dictionary] = []
@@ -167,8 +170,19 @@ func take_turn(enemy: Enemy, astar: AStarGrid2D) -> void:
 	if used >= 0:
 		_cooldowns[used] = rules[used].cooldown
 		_uses[used] += 1
+		rule_used.emit(used)
 	if enemy.manager.remains_at(enemy.map_position) == null:
 		_possess_turns = 0
+
+## HP percents where rules with an "hp_below" condition unlock, as {"rule": index in rules, "percent": p}.
+## The boss bar marks them as the moments the enemy gets a new move.
+func hp_thresholds() -> Array[Dictionary]:
+	var thresholds: Array[Dictionary] = []
+	for i in rules.size():
+		for condition in rules[i].conditions:
+			if condition.type == "hp_below":
+				thresholds.append({"rule": i, "percent": float(condition.get("percent", 50))})
+	return thresholds
 
 ## Returns the index of the rule that ran, or -1.
 func _act(enemy: Enemy, astar: AStarGrid2D) -> int:

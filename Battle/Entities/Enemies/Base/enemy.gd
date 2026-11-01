@@ -13,6 +13,8 @@ const WARNING_TILE_POSITION_ZERO = Vector2(200,220)
 var warning_tiles : Array
 
 signal enemy_died(enemy: Enemy)
+## HP went up or down (damage, heal, death). The boss bar listens to it.
+signal hp_changed(current_hp: int, max_hp: int)
 signal _enemy_updated_position(enemy: Enemy, from_map_position: Vector2i, to_map_position: Vector2i)
 
 var about_to_attack : bool = false
@@ -23,6 +25,10 @@ var turnsUntilAttack: int = 0
 @export var default_ai: JSON
 ## Data-driven AI made in the editor. Set by Battle from the encounter's "ai", else from default_ai; null = own script.
 var ai: AIBehavior
+
+## Gets the big health bar at the top of the screen (BossBar) instead of the one over its head.
+## Only the first boss in a battle gets it; any others keep their own bar.
+@export var is_boss: bool = false
 
 @export_group("Death")
 ## Enemy id (folder in Battle/Entities/Enemies) that falls out next to it when it dies, e.g. "Wisp". Empty = nothing.
@@ -135,6 +141,7 @@ func heal(amount: int) -> int:
 	current_hp += healed
 	if health_bar:
 		health_bar.value = current_hp
+	hp_changed.emit(current_hp, max_hp)
 	if healed > 0:
 		_spawn_number(healed, false, true)
 	return healed
@@ -193,6 +200,7 @@ func _take_damage(hit: Hit) -> void:
 	current_hp = max(current_hp - hit.damage, 0)
 	if health_bar:
 		health_bar.value = current_hp
+	hp_changed.emit(current_hp, max_hp)
 	_spawn_number(hit.damage, hit.is_critical)
 	if !current_hp:
 		die()
@@ -204,6 +212,7 @@ func die() -> void:
 	current_hp = 0
 	if health_bar:
 		health_bar.value = 0
+	hp_changed.emit(current_hp, max_hp)
 	enemy_died.emit(self)
 	queue_free()
 

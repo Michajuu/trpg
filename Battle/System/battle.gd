@@ -4,6 +4,8 @@ extends Control
 @export var encounter_json: JSON
 @export var heart_bar: HeartBar
 @export var tempo_bar: TempoBar
+## Big health bar at the top for the enemy with is_boss. Empty = bosses keep the bar over their head.
+@export var boss_bar: BossBar
 ## Container that gets one skill slot per skill in skill_loadout.
 @export var skill_bar: Container
 ## Ids of the skills the player brings into this battle (folder names in Battle/Skills).
@@ -107,6 +109,10 @@ func spawn_enemy(id: String, tile: Vector2i, facing: Unit.facing_direction, ai_i
 	enemy_instance.enemy_died.connect(_on_enemy_death)
 	enemy_instance.manager = self
 	add_child(enemy_instance)
+	if enemy_instance.is_boss and boss_bar and boss_bar.boss == null:
+		if enemy_instance.health_bar:
+			enemy_instance.health_bar.hide()
+		boss_bar.track(enemy_instance)
 	return enemy_instance
 
 ## Brings remains back as their enemy with full HP. The possessor (e.g. a Wisp) merges into it and disappears.
