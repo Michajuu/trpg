@@ -144,6 +144,20 @@ func _add_remains(enemy: Enemy) -> Remains:
 
 func _on_remains_destroyed(body: Remains) -> void:
 	remains.erase(body)
+	for child in body.get_children():
+		if child is Sprite2D:
+			_dissolve(body, child)
+
+# Visual only: a copy of the sprite crumbles into pixels where the unit was, drawn at its depth.
+func _dissolve(unit: Unit, sprite: Node2D, color: Color = Color.WHITE) -> void:
+	var effect := PixelDissolve.from_sprite(sprite)
+	if effect == null:
+		return
+	effect.dissolve_color = color
+	effect.position += unit.position
+	effect.z_as_relative = unit.z_as_relative
+	effect.z_index = unit.z_index
+	add_child(effect)
 
 ## Remains lying on tile, or null.
 func remains_at(tile: Vector2i) -> Remains:
@@ -223,6 +237,8 @@ func _on_attack_tiles(attack: Attack) -> void:
 
 func _on_enemy_death(enemy: Enemy):
 	_remove_enemy(enemy)
+	if enemy.dissolves_on_death and not enemy.explodes():
+		_dissolve(enemy, enemy.get_node("Sprite"), enemy.dissolve_color)
 	if enemy.leaves_remains:
 		_add_remains(enemy)
 	if enemy.explodes():

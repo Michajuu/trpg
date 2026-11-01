@@ -7,63 +7,24 @@ into that day's version; the next day of work starts a new version. When startin
 ## [0.7.0] - 2026-11-01
 
 ### Added
-- Wisp enemy: strikes one diagonal tile in front of itself (upper or lower, whichever the player is on) after a
-  1-turn warning (`Battle/AI/Wisp/wisp.json`).
-- Haunted Armor enemy: sweeps the 3 tiles in front of itself after a 1-turn warning
-  (`Battle/AI/HauntedArmor/haunted_armor.json`). When it dies, a Wisp falls out onto a free neighbour tile and the
-  empty armor (`knight-armor.png`) stays on its tile.
-- Remains (`Battle/Entities/Remains/remains.gd`): the body a dead enemy leaves behind. It doesn't block movement,
-  has its own HP and a health bar, and can be destroyed by attacks that hurt enemies.
-- Enemy export group "Death": `death_spawn_id`, `leaves_remains`, `remains_hp`, `remains_texture`, `remains_modulate`.
-- AI action `possess {turns, steps}`: walks to the nearest Remains and, after standing on it for `turns` turns,
-  revives that enemy with full HP. Any Wisp can revive any armor.
-- Encounter field `"remains"`: place empty bodies at the start of a battle.
-- Tile pattern preset `wide_front` (`[[1, -1], [1, 0], [1, 1]]`).
-- `Battle.spawn_enemy()`, `Battle.spawn_remains()`, `Battle.revive_remains()`: spawning enemies mid-battle.
-- Test encounters `wisp_test.json` and `haunted_armor_test.json`.
-- Game version shown in the bottom-right corner of every screen (autoload `VersionLabel`,
-  `Global/VersionLabel/`). It reads `application/config/version` from `project.godot`.
-- This changelog.
-- Turning toward an enemy behind you: moving into an enemy you have your back to turns the player around
-  instead. It costs as much as a move: enemies take their turn and Tempo decay is reset.
-- Bomboar enemy (`Battle/AI/Bomboar/bomboar.json`): runs up to the player and blows itself up once the player is in
-  its blast (the 3x3 square around it, own tile included). Killed in any way, it explodes too, so explosions chain.
-  The blast always goes off one player action later, with its tiles shown as warnings, so the player can step away.
-- Enemy export group "Explosion": `explosion_tiles` (tile pattern preset), `explosion_damage_multiplier`,
-  `explosion_delay`, `explosion_friendly_fire`. Any enemy with `explosion_tiles` explodes on death.
-- Fuse (`Battle/Entities/Fuse/fuse.gd`): the blinking body of an exploding enemy, counting down to its blast.
-  Doesn't block movement and can't be hurt. `Battle.light_fuse()`, `Battle.turn` (enemies' turns so far).
-- AI action `self_destruct {needs_target}`: the enemy dies on the spot and lights its fuse; `approach` walks to a tile
-  from which the blast would reach the player.
-- `Enemy.die()`: kills the enemy without damage (used by `self_destruct`).
-- Tile pattern preset `explosion` (3x3 square including the user's own tile).
-- Test encounter `bomboar_test.json`.
-- Warpig miniboss (`Battle/AI/Warpig/warpig.json`): keeps to the side wall farther from the player, leaping 3 tiles
-  at a time over anything in the way; the landing hits the tiles left, right, above and below it (shown a turn
-  ahead). Throws a Bomboar next to the player (max 3 alive); once it drops to 50% HP it throws 3 at once, one time
-  only (rule `max_uses: 1`).
-  Bomboar blasts heal it instead of hurting it.
-- AI action `throw {enemy, count, distance, max_alive, speed, height}`: throws new enemies of any id onto free tiles
-  near the player, in an arc from the thrower.
-- AI action `leap {distance, toward, tiles, damage_multiplier, windup, friendly_fire, speed, height}`: jumps along its
-  row over obstacles and units (`toward`: `far_wall`, `player` or `forward`) and hits tiles around the landing.
-- Enemy export `heals_from_explosions` (group "Explosion"): Fuse blasts heal it by their damage.
-  `Attack.is_explosion` / `Hit.is_explosion` mark blast damage.
-- `Enemy.play_hop()`: arcs the sprite up and down during a move (leaps, thrown enemies).
-- AI rule field `max_uses` (default 0 = no limit): the rule runs at most that many times per enemy.
-- Heal numbers: `DamageNumber.play()` takes `is_heal` (green, `+` prefix; exports `heal_color`, `heal_prefix`).
-- Tile pattern preset `cross` (left, right, up and down neighbours).
-- Test encounter `warpig_test.json` (now the one `Battle.tscn` loads).
+- New enemy: Wisp.
+- New enemy: Haunted Armor. When it falls, a Wisp escapes from it and its empty armor stays behind.
+- Wisps can bring empty armors back to life. Destroy the armor to stop them.
+- New enemy: Bomboar. It explodes when killed, and its explosions can set off other Bomboars.
+- New miniboss: Warpig. It throws Bomboars at you and is healed by their explosions.
+- You can now turn around to face an enemy behind you.
+- Defeated enemies and destroyed armors now crumble into pixels.
+- Game version shown in the bottom-right corner.
+- Changelog.
 
 ### Changed
-- Units are depth-sorted by grid row (`z_index` set from `map_position`), so units closer to the camera draw over
-  the ones behind them.
-- Damage numbers moved to `z_index` 20 so they stay above all units.
-- `Enemy.heal()` (AI action `heal` too) shows the healed amount as a green number.
+- Units closer to the camera are now drawn in front of the ones behind them.
+- Damage numbers always show above units.
+- Enemies show how much they heal.
 
 ### Fixed
-- Warning tiles drew over enemies; they now lie on the floor below every unit.
-- A blocked move no longer turns the player around for free (bumping into a wall or an enemy flipped facing).
+- Attack warnings were drawn over enemies.
+- Bumping into a wall or an enemy turned the player around.
 
 ## [0.6.0] - 2026-10-31
 

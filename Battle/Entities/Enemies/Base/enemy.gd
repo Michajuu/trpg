@@ -27,6 +27,10 @@ var ai: AIBehavior
 @export_group("Death")
 ## Enemy id (folder in Battle/Entities/Enemies) that falls out next to it when it dies, e.g. "Wisp". Empty = nothing.
 @export var death_spawn_id: String = ""
+## Crumbles into pixels when it dies (PixelDissolve). Never for exploding enemies: their body stays as a Fuse.
+@export var dissolves_on_death: bool = true
+## Color its pixels fade toward while they fly off.
+@export var dissolve_color: Color = Color(1, 1, 1, 1)
 ## Leaves its body (Remains) on its tile when it dies. Any enemy with the AI action "possess" can revive it.
 @export var leaves_remains: bool = false
 ## HP of the body; the player can destroy it so it can't be revived. 0 = indestructible.
