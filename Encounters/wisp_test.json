@@ -1,0 +1,8 @@
+{
+	"player_spawn": {"x": 1, "y": 2, "facing": "right"},
+	"enemies": [
+		{"id": "Wisp", "x": 5, "y": 1, "facing": "left"},
+		{"id": "Wisp", "x": 5, "y": 3, "facing": "left"}
+	],
+	"obstacles": []
+}

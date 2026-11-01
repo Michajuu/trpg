@@ -1,0 +1,45 @@
+{
+	"id": "Wisp",
+	"name": "Wisp",
+	"description": "Floats up to the player and strikes one diagonal tile in front of itself (upper or lower, whichever the player is on) after a 1-turn warning.",
+	"rules": [
+		{
+			"conditions": [],
+			"action": {
+				"type": "attack",
+				"tiles": [
+					[1, -1]
+				],
+				"damage_multiplier": 1,
+				"windup": 1,
+				"can_turn": true,
+				"needs_target": true,
+				"friendly_fire": false
+			},
+			"cooldown": 1
+		},
+		{
+			"conditions": [],
+			"action": {
+				"type": "attack",
+				"tiles": [
+					[1, 1]
+				],
+				"damage_multiplier": 1,
+				"windup": 1,
+				"can_turn": true,
+				"needs_target": true,
+				"friendly_fire": false
+			},
+			"cooldown": 1
+		},
+		{
+			"conditions": [],
+			"action": {
+				"type": "approach",
+				"steps": 1
+			},
+			"cooldown": 0
+		}
+	]
+}
