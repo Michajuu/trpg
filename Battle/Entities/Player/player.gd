@@ -31,8 +31,8 @@ var skills: Array[Skill] = []
 ## How much faster Tempo decays per level (0.25 = +25% faster per level).
 ## 0 = decay is always the same speed.
 @export var tempo_decay_speedup_per_level: float = 0.25
-## How many seconds after each action (move/attack) Tempo doesn't decay at all.
-## Should be longer than the move animation so continuous walking doesn't lose Tempo.
+## How many seconds at the start of each player turn Tempo doesn't decay at all (reaction time).
+## Tempo never decays during the enemies' turn.
 @export var tempo_decay_grace_time: float = 0.4
 ## How much basic attack damage grows per Tempo level (0.1 = +10% dmg per level).
 @export var tempo_damage_bonus_per_level: float = 0.1
@@ -74,9 +74,14 @@ func _ready() -> void:
 	hp_changed.emit(current_hp, max_hp)
 	sprite.play("idle")
 	sprite.flip_h = facing
+	if manager:
+		manager.player_turn_started.connect(_reset_tempo_decay)
 
 func _process(delta: float) -> void:
-	_update_tempo_decay(delta)
+	# The clock only runs on the player's turn: the faster they act, the less Tempo they lose.
+	var my_turn := manager.is_player_turn()
+	if my_turn:
+		_update_tempo_decay(delta)
 	#Change sprite rotation according to direction
 	sprite.flip_h = facing
 	#Movement
@@ -84,6 +89,8 @@ func _process(delta: float) -> void:
 		sprite.play("idle")
 	elif position != destination:
 		_move_toward_destination(delta)
+	elif not my_turn:
+		pass
 	elif Input.is_action_just_pressed("ui_right"):
 		var new_map_position = Vector2i(map_position.x + 1, map_position.y)
 		var new_position = Vector2(position.x+46, position.y)
@@ -100,7 +107,9 @@ func _process(delta: float) -> void:
 		var new_map_position = Vector2i(map_position.x, map_position.y + 1)
 		var new_position = Vector2(position.x-32, position.y+32)
 		_move(new_map_position,new_position)
-	#Attacking
+	#Attacking (re-checked: a move or turn this frame has already ended the turn)
+	if not manager.is_player_turn() or position != destination:
+		return
 	if Input.is_action_just_pressed("basic_attack") and AttackCooldownTimer.is_stopped():
 		manager.finish_enemy_animations()
 		var tile : Array[Vector2i] = [Vector2i(map_position.x+1*(-1 if facing else 1),map_position.y)]
@@ -113,30 +122,36 @@ func _process(delta: float) -> void:
 		_attack_tiles.emit(Attack.new(self, tile, get_basic_attack_damage()))
 		if hit_enemy:
 			add_tempo_percentage(tempo_per_attack)
-		manager._move_enemies()
+		manager.end_player_turn()
+		return
 	#Skills
 	for i in mini(skills.size(), SKILL_ACTIONS.size()):
 		if Input.is_action_just_pressed(SKILL_ACTIONS[i]):
 			_use_skill(skills[i])
+			return
 
 func set_skills(new_skills: Array[Skill]) -> void:
 	skills = new_skills
 	for skill in skills:
 		skill.user = self
 
-## Using a skill counts as an action: resets Tempo decay and gives enemies their turn.
+## Using a skill counts as an action: ends the player's turn.
 func _use_skill(skill: Skill) -> void:
 	manager.finish_enemy_animations()
 	if not skill.use():
 		return
 	_reset_tempo_decay()
-	manager._move_enemies()
+	manager.end_player_turn()
+
+## True while the player's action is still playing out (move or attack animation). Battle waits for it
+## before the enemies act.
+func is_busy() -> bool:
+	return position != destination or (sprite.is_playing() and sprite.animation == &"attack")
 
 ## new_facing is applied only if the move succeeds. A move blocked by an enemy behind the player turns them
 ## toward it instead (costs an action); any other blocked move changes nothing.
 func _move(new_map_position : Vector2i, new_position : Vector2, new_facing : facing_direction = facing):
 	manager.finish_enemy_animations()
-	# Set before _can_move: on success enemies take their turn inside it and must see the new facing.
 	var old_facing := facing
 	facing = new_facing
 	if manager._can_move(self, map_position, new_map_position):
@@ -145,10 +160,11 @@ func _move(new_map_position : Vector2i, new_position : Vector2, new_facing : fac
 		map_position = new_map_position
 		destination = new_position
 		_reset_tempo_decay()
+		manager.end_player_turn()
 	elif new_facing != old_facing and manager._has_enemy_in([new_map_position] as Array[Vector2i]):
-		# Turning toward the enemy costs as much as a move: enemies take their turn.
+		# Turning toward the enemy costs as much as a move: it ends the turn.
 		_reset_tempo_decay()
-		manager._move_enemies()
+		manager.end_player_turn()
 	else:
 		facing = old_facing
 
@@ -176,7 +192,7 @@ func _update_tempo_decay(delta: float) -> void:
 func _current_decay_interval() -> float:
 	return tempo_decay_interval / (1.0 + tempo * maxf(tempo_decay_speedup_per_level, 0.0))
 
-## Every player action restarts the countdown.
+## Every player action and the start of every player turn restarts the countdown.
 ## Starting from a negative value = grace time before the first decay tick happens.
 func _reset_tempo_decay() -> void:
 	_tempo_decay_time = -maxf(tempo_decay_grace_time, 0.0)

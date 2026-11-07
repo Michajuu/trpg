@@ -1,13 +1,14 @@
 [gd_scene format=3 uid="uid://osxylfn8e8rs"]
 
 [ext_resource type="Script" uid="uid://cdtxqtnwwjqfa" path="res://Battle/System/battle.gd" id="1_d7upo"]
-[ext_resource type="JSON" path="res://Encounters/warpig_test.json" id="2_0l6bm"]
+[ext_resource type="JSON" path="res://Encounters/charger_test.json" id="2_8e1ki"]
 [ext_resource type="Texture2D" uid="uid://026p6vv2gnnl" path="res://Battle/System/battle-area.png" id="3_0l6bm"]
 [ext_resource type="PackedScene" uid="uid://bav60v4j7opky" path="res://Battle/System/Tempometer/tempometer.tscn" id="4_jm2ld"]
 [ext_resource type="PackedScene" path="res://Battle/System/Hearts/heart_bar.tscn" id="5_heart"]
 [ext_resource type="PackedScene" path="res://Battle/System/BossBar/boss_bar.tscn" id="6_boss"]
+[ext_resource type="PackedScene" path="res://Battle/System/TurnOrderBar/turn_order_bar.tscn" id="7_turn"]
 
-[node name="Battle" type="Control" unique_id=2123567974 node_paths=PackedStringArray("heart_bar", "tempo_bar", "boss_bar", "skill_bar")]
+[node name="Battle" type="Control" unique_id=2123567974 node_paths=PackedStringArray("heart_bar", "tempo_bar", "boss_bar", "turn_order_bar", "skill_bar")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -16,10 +17,11 @@ offset_right = -1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_d7upo")
-encounter_json = ExtResource("2_0l6bm")
+encounter_json = ExtResource("2_8e1ki")
 heart_bar = NodePath("HeartBar")
 tempo_bar = NodePath("Tempometer")
 boss_bar = NodePath("BossBar")
+turn_order_bar = NodePath("TurnOrderBar")
 skill_bar = NodePath("Abilities")
 metadata/_edit_lock_ = true
 metadata/_edit_vertical_guides_ = [32.0]
@@ -53,6 +55,12 @@ offset_bottom = 468.0
 [node name="BossBar" parent="." unique_id=1468203315 instance=ExtResource("6_boss")]
 layout_mode = 0
 offset_left = 140.0
-offset_top = 16.0
+offset_top = 58.0
 offset_right = 500.0
-offset_bottom = 40.0
+offset_bottom = 82.0
+
+[node name="TurnOrderBar" parent="." unique_id=611803729 instance=ExtResource("7_turn")]
+layout_mode = 0
+offset_top = 6.0
+offset_right = 640.0
+offset_bottom = 34.0

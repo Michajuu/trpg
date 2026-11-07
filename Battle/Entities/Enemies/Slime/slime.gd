@@ -8,7 +8,10 @@ func _decide_next_action(astar: AStarGrid2D, player_map_position: Vector2i) -> v
 		turnsUntilAttack -= 1
 		if !turnsUntilAttack:
 			_place_warning_tile(tiles_to_check)
+			# Swells up and holds the pose (animation_chains) until the hit.
+			play_animation("anticipation")
 	elif about_to_attack:
+		play_animation("attack")
 		_attack_tiles.emit(Attack.new(self, tiles_to_check, dmg))
 		about_to_attack = false
 		_remove_warning_tiles()

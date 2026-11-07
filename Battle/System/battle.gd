@@ -6,6 +6,8 @@ extends Control
 @export var tempo_bar: TempoBar
 ## Big health bar at the top for the enemy with is_boss. Empty = bosses keep the bar over their head.
 @export var boss_bar: BossBar
+## Bar at the top of the screen with the round number and the units in the order they act. Empty = no bar.
+@export var turn_order_bar: TurnOrderBar
 ## Container that gets one skill slot per skill in skill_loadout.
 @export var skill_bar: Container
 ## Ids of the skills the player brings into this battle (folder names in Battle/Skills).
@@ -37,6 +39,28 @@ var fuses : Array[Fuse]
 ## Enemies' turns started so far; fuses count their delay in these.
 var turn: int = 0
 var _enemy_turn_running: bool = false
+
+## Turns are separate: the player takes one action, then every enemy acts one after another.
+## Tempo only decays during the player's turn, so the player has to act fast to keep it.
+enum TurnPhase {PLAYER, ENEMIES}
+var phase: TurnPhase = TurnPhase.PLAYER
+## Emitted when the enemies are done and the player can act again.
+signal player_turn_started
+## Emitted on every switch between the player's and the enemies' turn (UI listens to it).
+signal turn_phase_changed(phase: TurnPhase)
+## Emitted when a round starts: the units in the order they will act (the player first).
+signal turn_order_changed(order: Array[Unit], round_number: int)
+## Emitted when a unit starts acting (the player on their turn, then each enemy).
+signal active_unit_changed(unit: Unit)
+## Rounds started so far; a round is the player's turn plus the enemies' turn after it.
+var round_number: int = 1
+## Pause after each enemy's action, in seconds, so moves read one by one. 0 = next enemy right away.
+@export var enemy_action_gap: float = 0.15
+## Speed of enemy moves and animations (1.0 = as set on each enemy, 0.7 = 30% slower). Lower = more time
+## to see what each enemy does.
+@export var enemy_animation_speed: float = 0.7
+## Safety cap: an enemy whose animation runs longer than this (seconds) is snapped to its end.
+@export var enemy_action_max_time: float = 3.0
 
 const NO_TILE := Vector2i(-1, -1)
 
@@ -75,6 +99,11 @@ func _ready() -> void:
 		spawn_enemy(enemy.id, enemy.position, enemy.facing, enemy.ai)
 	for body : UnitData in encounter_data.remains:
 		spawn_remains(body.id, body.position, body.facing, body.ai)
+
+	if turn_order_bar:
+		turn_order_changed.connect(turn_order_bar.show_order)
+		active_unit_changed.connect(turn_order_bar.set_active)
+	_start_round()
 
 	for obstacle : UnitData in encounter_data.obstacles:
 		var obstacle_scene = load("res://Battle/Entities/Obstacles/%s/%s.tscn" % [obstacle.id, obstacle.id])
@@ -195,7 +224,22 @@ func _process(_delta: float) -> void:
 	if Input.is_action_just_pressed("ui_cancel"):
 		get_tree().quit()
 
-func _move_enemies() -> void:
+func is_player_turn() -> bool:
+	return phase == TurnPhase.PLAYER
+
+## The player's action is done: the enemies take their turn. Safe to call twice; the second call is ignored.
+func end_player_turn() -> void:
+	if phase != TurnPhase.PLAYER:
+		return
+	phase = TurnPhase.ENEMIES
+	turn_phase_changed.emit(phase)
+	# Taken now, before any waiting: enemies added from here on (death spawns, thrown enemies) act next turn.
+	_run_enemy_turn(enemies.duplicate())
+
+func _run_enemy_turn(acting: Array[Enemy]) -> void:
+	# Let the player's move/attack play out first (and whatever it set off, e.g. a death spawn sliding out),
+	# so each turn reads on its own.
+	await _wait_while(func() -> bool: return player.is_busy() or _any_enemy_busy())
 	turn += 1
 	_enemy_turn_running = true
 	# Fuses go off first, like telegraphed attacks landing. Copy: a blast can light new fuses (chain reaction);
@@ -203,11 +247,51 @@ func _move_enemies() -> void:
 	for fuse : Fuse in fuses.duplicate():
 		if is_instance_valid(fuse) and not fuse.is_queued_for_deletion():
 			fuse.tick(turn)
-	# Copy: an enemy can die during the loop (e.g. friendly fire), which erases it from enemies.
-	for enemy : Enemy in enemies.duplicate():
-		if is_instance_valid(enemy) and not enemy.is_queued_for_deletion():
-			enemy.take_turn(astar, player.map_position)
+	await _wait_for_enemies()
+	# One by one: each enemy waits until the previous one has finished its animation.
+	# Enemies can die before their turn comes (e.g. friendly fire), so check each one.
+	for enemy : Enemy in acting:
+		if not is_instance_valid(enemy) or enemy.is_queued_for_deletion() or enemy not in enemies:
+			continue
+		active_unit_changed.emit(enemy)
+		enemy.take_turn(astar, player.map_position)
+		# Every enemy, not only this one: an action can move others too (e.g. thrown Bomboars).
+		await _wait_for_enemies()
+		if enemy_action_gap > 0.0:
+			await get_tree().create_timer(enemy_action_gap).timeout
 	_enemy_turn_running = false
+	phase = TurnPhase.PLAYER
+	round_number += 1
+	_start_round()
+	turn_phase_changed.emit(phase)
+	player_turn_started.emit()
+
+# The order is fixed for the whole round: enemies added during it join the next one.
+func _start_round() -> void:
+	var order: Array[Unit] = [player]
+	order.append_array(enemies)
+	turn_order_changed.emit(order, round_number)
+	active_unit_changed.emit(player)
+
+func _any_enemy_busy() -> bool:
+	for enemy : Enemy in enemies:
+		if is_instance_valid(enemy) and not enemy.is_queued_for_deletion() and enemy.is_busy():
+			return true
+	return false
+
+# Waits until no enemy is animating, then snaps any that ran past enemy_action_max_time.
+func _wait_for_enemies() -> void:
+	await _wait_while(_any_enemy_busy)
+	finish_enemy_animations()
+
+# Waits frames while busy() is true, at most enemy_action_max_time seconds. Always waits at least one frame,
+# so deferred spawns (e.g. a Wisp falling out of its armor) exist before busy() is first checked.
+func _wait_while(busy: Callable) -> void:
+	await get_tree().process_frame
+	var waited := 0.0
+	while busy.call() and waited < enemy_action_max_time:
+		await get_tree().process_frame
+		waited += get_process_delta_time()
 
 ## Snaps every enemy to the end of its move, landing queued hits (e.g. a charge) before the player's
 ## next action changes the grid. The player calls it at the start of every action.
@@ -222,8 +306,6 @@ func _can_move(unit: Unit ,from_map_position: Vector2i,to_map_position: Vector2i
 		if !grid[to_map_position.y][to_map_position.x]:
 			grid[from_map_position.y][from_map_position.x] = null
 			grid[to_map_position.y][to_map_position.x] = unit
-			if unit is Player:
-				_move_enemies()
 			return true
 	return false
 

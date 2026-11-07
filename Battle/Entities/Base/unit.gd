@@ -20,6 +20,8 @@ const DEPTH_Z_PER_ROW := 2
 @export_range(0.0, 1.0) var crit_chance: float = 0.025
 ## Damage multiplier of this unit's critical hits.
 @export var crit_multiplier: float = 2.0
+## Picture in the turn order bar. Empty = the first "idle" frame of the unit's Sprite, cropped to its pixels.
+@export var portrait: Texture2D
 ## Speed of the tile-to-tile movement animation, in pixels per second (FPS-independent).
 @export var move_speed: float = 300
 var current_hp: int

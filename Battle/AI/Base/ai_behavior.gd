@@ -65,6 +65,10 @@ extends RefCounted
 ##   while the warning tiles are shown (e.g. a slime opening its mouth). Empty = "idle". A one-shot (non-looping)
 ##   animation goes back to "idle" when it ends; a missing one logs a warning and plays "idle".
 ## cooldown (per rule): after the rule runs it is skipped for that many turns.
+## delay (per rule, default 0): turns the enemy takes to react before the action starts. The action has to be
+##   possible for delay of its turns in a row first; on those turns the enemy only turns to face the player.
+##   For attack, charge and self_destruct "possible" means the player is in reach; for other actions only the
+##   conditions count. Stepping out of reach resets it. Turns on cooldown count too, so it doesn't add up with it.
 ## max_uses (per rule, default 0 = no limit): the rule runs at most that many times per enemy, e.g. 1 for a one-time
 ##   phase move at 50% HP. Counted per enemy, so a revived or newly spawned one starts again.
 
@@ -87,6 +91,8 @@ var rules: Array[Dictionary] = []
 var _cooldowns: Array[int] = []
 # Times each rule has run (for max_uses).
 var _uses: Array[int] = []
+# Turns in a row each rule's action has been possible (for delay).
+var _ready_turns: Array[int] = []
 var _pending_tiles: Array[Vector2i] = []
 var _pending_damage: int = 0
 var _pending_friendly_fire: bool = false
@@ -132,6 +138,7 @@ static func from_json(json: JSON) -> AIBehavior:
 	for i in behavior.rules.size():
 		behavior._cooldowns.append(0)
 		behavior._uses.append(0)
+		behavior._ready_turns.append(0)
 	return behavior
 
 ## Checks the rules once and drops broken ones, so mistakes are reported on load instead of every turn.
@@ -159,7 +166,7 @@ static func _parse(behavior_id: String, dict: Dictionary) -> Dictionary:
 			conditions.append(condition)
 		if valid:
 			rules.append({"conditions": conditions, "action": action, "cooldown": maxi(int(raw.get("cooldown", 0)), 0),
-				"max_uses": maxi(int(raw.get("max_uses", 0)), 0)})
+				"max_uses": maxi(int(raw.get("max_uses", 0)), 0), "delay": maxi(int(raw.get("delay", 0)), 0)})
 	return {"name": str(dict.get("name", behavior_id)), "rules": rules}
 
 ## One enemy turn. Called by Enemy.take_turn every time the player acts.
@@ -199,14 +206,23 @@ func _act(enemy: Enemy, astar: AStarGrid2D) -> int:
 					_release_attack(enemy)
 		return -1
 	for i in rules.size():
-		if _cooldowns[i] > 0:
-			continue
 		var rule: Dictionary = rules[i]
 		if rule.max_uses > 0 and _uses[i] >= rule.max_uses:
 			continue
-		if not _conditions_hold(rule.conditions, enemy):
+		if rule.delay > 0:
+			var possible := _conditions_hold(rule.conditions, enemy) and _can_run(rule.action, enemy)
+			_ready_turns[i] = _ready_turns[i] + 1 if possible else 0
+			if _cooldowns[i] > 0 or not possible:
+				continue
+			if _ready_turns[i] <= rule.delay:
+				# Noticed the player, not ready yet: only turns toward them, so the player sees it coming.
+				_face_player(enemy)
+				enemy.play_animation("")
+				return -1
+		elif _cooldowns[i] > 0 or not _conditions_hold(rule.conditions, enemy):
 			continue
 		if _run_action(rule.action, enemy, astar):
+			_ready_turns[i] = 0
 			# Attacks, charges and leaps pick their own animation (windup or hit).
 			if rule.action.type not in ["attack", "charge", "leap"]:
 				enemy.play_animation(str(rule.action.get("animation", "")))
@@ -398,6 +414,30 @@ func _player_tile(enemy: Enemy) -> Vector2i:
 	return manager.player.map_position
 
 ## Kills the enemy; Battle lights its fuse (Battle.light_fuse), which does the damage later.
+## Whether the action could start now, without doing it (for delay). Only actions that need the player in reach
+## check anything; the rest count as possible.
+func _can_run(action: Dictionary, enemy: Enemy) -> bool:
+	match action.type:
+		"attack":
+			var offsets: Array[Vector2i] = action.offsets
+			if offsets.is_empty():
+				return false
+			if not action.get("needs_target", true):
+				return true
+			var player_pos: Vector2i = enemy.manager.player.map_position
+			if player_pos in TilePattern.to_tiles(offsets, enemy.map_position, enemy.facing):
+				return true
+			return action.get("can_turn", true) 				and player_pos in TilePattern.to_tiles(offsets, enemy.map_position, _opposite(enemy.facing))
+		"charge":
+			var sight := maxi(int(action.get("sight", 0)), 0)
+			var avoid_allies: bool = action.get("avoid_allies", true)
+			return _sees_player(enemy, enemy.facing, sight, avoid_allies) or (action.get("can_turn", true) 				and _sees_player(enemy, _opposite(enemy.facing), sight, avoid_allies))
+		"self_destruct":
+			if not action.get("needs_target", true):
+				return enemy.explodes()
+			return enemy.explodes() and _player_on(enemy, TilePattern.to_tiles(enemy.get_explosion_offsets(), enemy.map_position, enemy.facing))
+	return true
+
 func _self_destruct(action: Dictionary, enemy: Enemy) -> bool:
 	if not enemy.explodes():
 		push_warning("%s: self_destruct needs explosion_tiles set on the enemy" % enemy.name)

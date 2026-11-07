@@ -26,6 +26,10 @@ var turnsUntilAttack: int = 0
 ## Data-driven AI made in the editor. Set by Battle from the encounter's "ai", else from default_ai; null = own script.
 var ai: AIBehavior
 
+## What plays after a one-shot animation ends, by animation name, e.g. {"anticipation": "anticipation_loop"}
+## to hold a pose while an attack winds up. Animations not listed go back to "idle".
+@export var animation_chains: Dictionary[String, String] = {}
+
 ## Gets the big health bar at the top of the screen (BossBar) instead of the one over its head.
 ## Only the first boss in a battle gets it; any others keep their own bar.
 @export var is_boss: bool = false
@@ -87,6 +91,11 @@ func _ready() -> void:
 	if ai == null and default_ai:
 		ai = AIBehavior.from_json(default_ai)
 	sprite.animation_finished.connect(_on_sprite_animation_finished)
+	sprite.speed_scale = animation_speed()
+
+## How fast this enemy's moves and animations play, from Battle.enemy_animation_speed (1.0 = normal).
+func animation_speed() -> float:
+	return maxf(manager.enemy_animation_speed, 0.05) if manager else 1.0
 
 ## Plays an animation from the Sprite's SpriteFrames (used by the AI's "animation" fields).
 ## Empty or missing name = "idle"; missing names are reported once per enemy.
@@ -120,11 +129,11 @@ func _run_contact_hits() -> void:
 		_contact_hits.pop_front()
 		next.hit.call()
 
-# One-shot (non-looping) animations return to idle when they end.
+# One-shot (non-looping) animations go on to their animation_chains entry, else back to idle.
 func _on_sprite_animation_finished() -> void:
-	sprite.play("idle")
+	play_animation(animation_chains.get(String(sprite.animation), "idle"))
 
-## The enemy's turn; Battle calls it every time the player acts.
+## The enemy's turn; Battle calls it once per enemies' turn, after the previous enemy has finished.
 func take_turn(astar: AStarGrid2D, player_map_position: Vector2i) -> void:
 	if ai:
 		ai.take_turn(self, astar)
@@ -151,7 +160,7 @@ func heal(amount: int) -> int:
 func play_hop(height: float) -> void:
 	_stop_hop()
 	var gap := (destination - position).abs()
-	var time := maxf(gap.x, gap.y) / maxf(move_speed, 1.0)
+	var time := maxf(gap.x, gap.y) / maxf(move_speed * animation_speed(), 1.0)
 	if time <= 0.0 or height <= 0.0:
 		return
 	_hop = create_tween()
@@ -166,7 +175,7 @@ func _stop_hop() -> void:
 
 func _process(delta: float) -> void:
 	if position != destination:
-		_move_toward_destination(delta)
+		_move_toward_destination(delta * animation_speed())
 	_run_contact_hits()
 	if position == destination:
 		_on_arrived()
@@ -178,6 +187,16 @@ func finish_animations() -> void:
 	position = destination
 	_run_contact_hits()
 	_on_arrived()
+
+## True while its action is still playing out: moving, hopping, hits waiting on the way, or a one-shot animation.
+## Battle waits for it before the next enemy acts. Looping animations (e.g. a telegraph pose) don't count.
+func is_busy() -> bool:
+	if position != destination or not _contact_hits.is_empty():
+		return true
+	if _hop and _hop.is_running():
+		return true
+	return sprite.is_playing() and sprite.animation != &"idle" and sprite.sprite_frames \
+		and not sprite.sprite_frames.get_animation_loop(sprite.animation)
 
 ## Moves at speed until the current move ends (e.g. a charge), then goes back to move_speed.
 func set_move_speed_until_arrival(speed: float) -> void:

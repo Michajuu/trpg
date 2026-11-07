@@ -7,8 +7,16 @@ into that day's version; the next day of work starts a new version. When startin
 ## [0.8.0] - 2026-11-07
 
 ### Added
+- Turn order bar at the top of the screen: the round number and every unit in the order they act. The one acting now is highlighted.
+- Slime animations: it swells up before attacking and slams down when it hits.
 - Exploration walking: move freely in 8 directions with the arrow keys or gamepad, with smooth starts and stops. Walls block your way. Try it on the new test level.
   The camera follows you but never shows what lies beyond the edge of the map; a map smaller than the screen stays centered.
+
+### Changed
+- Turns are now separate: you take one action, then the enemies act one after another.
+- Tempo drains only during your turn, not while the enemies move. Act fast to keep it.
+- Enemies move a bit slower and pause between actions, so each move is easier to follow.
+- Enemies take a turn to react when you step into their reach before they start winding up an attack.
 
 ## [0.7.0] - 2026-11-01
 

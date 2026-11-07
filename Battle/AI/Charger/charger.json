@@ -18,7 +18,8 @@
 				"windup_animation": "charge_up",
 				"animation": "charge"
 			},
-			"cooldown": 2
+			"cooldown": 2,
+			"delay": 1
 		},
 		{
 			"conditions": [],

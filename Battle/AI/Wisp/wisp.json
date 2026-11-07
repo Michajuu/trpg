@@ -16,7 +16,8 @@
 				"needs_target": true,
 				"friendly_fire": false
 			},
-			"cooldown": 1
+			"cooldown": 1,
+			"delay": 1
 		},
 		{
 			"conditions": [],
@@ -31,7 +32,8 @@
 				"needs_target": true,
 				"friendly_fire": false
 			},
-			"cooldown": 1
+			"cooldown": 1,
+			"delay": 1
 		},
 		{
 			"conditions": [],

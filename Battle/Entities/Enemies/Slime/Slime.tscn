@@ -1,50 +1,163 @@
 [gd_scene format=3 uid="uid://dvuc30mwht3lh"]
 
 [ext_resource type="PackedScene" uid="uid://dmi7aprfeipx8" path="res://Battle/Entities/Enemies/Base/Enemy.tscn" id="1_wjxvx"]
-[ext_resource type="Texture2D" uid="uid://caaxlxpcjupj3" path="res://Battle/Entities/Enemies/Slime/slime.png" id="1_xi6rn"]
 [ext_resource type="Script" uid="uid://dy5ah56jine1a" path="res://Battle/Entities/Enemies/Slime/slime.gd" id="3_1p5cq"]
+[ext_resource type="Texture2D" uid="uid://btxb26g4mwi6h" path="res://Battle/Entities/Enemies/Slime/slime-idle.png" id="2_idle"]
+[ext_resource type="Texture2D" uid="uid://si7a6cg36uak" path="res://Battle/Entities/Enemies/Slime/slime-anticipation.png" id="3_antic"]
+[ext_resource type="Texture2D" uid="uid://dss5pf0d1dlg" path="res://Battle/Entities/Enemies/Slime/slime-ba.png" id="4_hold"]
+[ext_resource type="Texture2D" uid="uid://iny83r1egppq" path="res://Battle/Entities/Enemies/Slime/slime-attack.png" id="5_attack"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wjxvx"]
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_wjxvx"]
-atlas = ExtResource("1_xi6rn")
-region = Rect2(0, 0, 32, 32)
+[sub_resource type="AtlasTexture" id="Atlas_idle_0"]
+atlas = ExtResource("2_idle")
+region = Rect2(0, 0, 32, 64)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_1p5cq"]
-atlas = ExtResource("1_xi6rn")
-region = Rect2(32, 0, 32, 32)
+[sub_resource type="AtlasTexture" id="Atlas_idle_1"]
+atlas = ExtResource("2_idle")
+region = Rect2(32, 0, 32, 64)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_aodp2"]
-atlas = ExtResource("1_xi6rn")
-region = Rect2(64, 0, 32, 32)
+[sub_resource type="AtlasTexture" id="Atlas_idle_2"]
+atlas = ExtResource("2_idle")
+region = Rect2(64, 0, 32, 64)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_c45c3"]
-atlas = ExtResource("1_xi6rn")
-region = Rect2(96, 0, 32, 32)
+[sub_resource type="AtlasTexture" id="Atlas_idle_3"]
+atlas = ExtResource("2_idle")
+region = Rect2(96, 0, 32, 64)
+
+[sub_resource type="AtlasTexture" id="Atlas_anticipation_0"]
+atlas = ExtResource("3_antic")
+region = Rect2(0, 0, 32, 64)
+
+[sub_resource type="AtlasTexture" id="Atlas_anticipation_1"]
+atlas = ExtResource("3_antic")
+region = Rect2(32, 0, 32, 64)
+
+[sub_resource type="AtlasTexture" id="Atlas_anticipation_2"]
+atlas = ExtResource("3_antic")
+region = Rect2(64, 0, 32, 64)
+
+[sub_resource type="AtlasTexture" id="Atlas_anticipation_3"]
+atlas = ExtResource("3_antic")
+region = Rect2(96, 0, 32, 64)
+
+[sub_resource type="AtlasTexture" id="Atlas_anticipation_4"]
+atlas = ExtResource("3_antic")
+region = Rect2(128, 0, 32, 64)
+
+[sub_resource type="AtlasTexture" id="Atlas_anticipation_5"]
+atlas = ExtResource("3_antic")
+region = Rect2(160, 0, 32, 64)
+
+[sub_resource type="AtlasTexture" id="Atlas_anticipation_loop_0"]
+atlas = ExtResource("4_hold")
+region = Rect2(0, 0, 32, 64)
+
+[sub_resource type="AtlasTexture" id="Atlas_anticipation_loop_1"]
+atlas = ExtResource("4_hold")
+region = Rect2(32, 0, 32, 64)
+
+[sub_resource type="AtlasTexture" id="Atlas_anticipation_loop_2"]
+atlas = ExtResource("4_hold")
+region = Rect2(64, 0, 32, 64)
+
+[sub_resource type="AtlasTexture" id="Atlas_attack_0"]
+atlas = ExtResource("5_attack")
+region = Rect2(0, 0, 32, 64)
+
+[sub_resource type="AtlasTexture" id="Atlas_attack_1"]
+atlas = ExtResource("5_attack")
+region = Rect2(32, 0, 32, 64)
+
+[sub_resource type="AtlasTexture" id="Atlas_attack_2"]
+atlas = ExtResource("5_attack")
+region = Rect2(64, 0, 32, 64)
+
+[sub_resource type="AtlasTexture" id="Atlas_attack_3"]
+atlas = ExtResource("5_attack")
+region = Rect2(96, 0, 32, 64)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_emi7v"]
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_wjxvx")
+"texture": SubResource("Atlas_idle_0")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_1p5cq")
+"texture": SubResource("Atlas_idle_1")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_aodp2")
+"texture": SubResource("Atlas_idle_2")
 }, {
 "duration": 1.0,
-"texture": SubResource("AtlasTexture_c45c3")
+"texture": SubResource("Atlas_idle_3")
 }],
-"loop": 1,
+"loop": true,
 "name": &"idle",
-"speed": 5.0
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Atlas_anticipation_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_anticipation_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_anticipation_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_anticipation_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_anticipation_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_anticipation_5")
+}],
+"loop": false,
+"name": &"anticipation",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Atlas_anticipation_loop_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_anticipation_loop_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_anticipation_loop_2")
+}],
+"loop": true,
+"name": &"anticipation_loop",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Atlas_attack_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_attack_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_attack_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_attack_3")
+}],
+"loop": false,
+"name": &"attack",
+"speed": 12.0
 }]
 
 [node name="Slime" unique_id=2104467743 node_paths=PackedStringArray("health_bar") instance=ExtResource("1_wjxvx")]
 script = ExtResource("3_1p5cq")
 health_bar = NodePath("HealthBar")
+animation_chains = {
+"anticipation": "anticipation_loop"
+}
+unit_name = "Slime"
 max_hp = 30
 
 [node name="HealthBar" parent="." index="0" unique_id=816827700]
@@ -52,7 +165,6 @@ z_index = 1
 theme_override_styles/background = SubResource("StyleBoxFlat_wjxvx")
 
 [node name="Sprite" parent="." index="1" unique_id=584000944]
-position = Vector2(0, 16)
 sprite_frames = SubResource("SpriteFrames_emi7v")
 animation = &"idle"
 flip_h = true
