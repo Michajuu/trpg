@@ -4,6 +4,12 @@ All notable changes to this project. One version per working day: every change m
 into that day's version; the next day of work starts a new version. When starting a new version, also update
 `config/version` in `project.godot` (Project Settings > Application > Config > Version): the game shows it on screen.
 
+## [0.8.0] - 2026-11-07
+
+### Added
+- Exploration walking: move freely in 8 directions with the arrow keys or gamepad, with smooth starts and stops. Walls block your way. Try it on the new test level.
+  The camera follows you but never shows what lies beyond the edge of the map; a map smaller than the screen stays centered.
+
 ## [0.7.0] - 2026-11-01
 
 ### Added

@@ -1,0 +1,82 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Exploration/Player/explorer.gd" id="1_syvqs"]
+[ext_resource type="Texture2D" path="res://Battle/Entities/Player/player-knight-idle.png" id="2_snv4j"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ooloo"]
+atlas = ExtResource("2_snv4j")
+region = Rect2(0, 0, 96, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_lksmj"]
+atlas = ExtResource("2_snv4j")
+region = Rect2(96, 0, 96, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_vj1al"]
+atlas = ExtResource("2_snv4j")
+region = Rect2(192, 0, 96, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_c5h8t"]
+atlas = ExtResource("2_snv4j")
+region = Rect2(288, 0, 96, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_8mn1w"]
+atlas = ExtResource("2_snv4j")
+region = Rect2(384, 0, 96, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_so33x"]
+atlas = ExtResource("2_snv4j")
+region = Rect2(480, 0, 96, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fhptd"]
+atlas = ExtResource("2_snv4j")
+region = Rect2(576, 0, 96, 64)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_0gl4v"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ooloo")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_lksmj")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_vj1al")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_c5h8t")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_8mn1w")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_so33x")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fhptd")
+}],
+"loop": 1,
+"name": &"idle",
+"speed": 5.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_j3jpe"]
+size = Vector2(18, 8)
+
+[node name="Explorer" type="CharacterBody2D" unique_id=241080740]
+motion_mode = 1
+script = ExtResource("1_syvqs")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="." unique_id=2068650257]
+position = Vector2(0, -30)
+sprite_frames = SubResource("SpriteFrames_0gl4v")
+animation = &"idle"
+autoplay = "idle"
+
+[node name="Collision" type="CollisionShape2D" parent="." unique_id=508678171]
+position = Vector2(0, -4)
+shape = SubResource("RectangleShape2D_j3jpe")
+
+[node name="Camera" type="Camera2D" parent="." unique_id=952188543]
+position_smoothing_enabled = true
+position_smoothing_speed = 8.0
